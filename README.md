@@ -34,3 +34,32 @@ Este documento es un **reporte vivo**: aquí registro la historia del proyecto (
 
 > **Definición operativa de excedencia:** día en que el promedio diario de PM2.5 supera el umbral (Chile 25 µg/m³; OMS 15 µg/m³).
 
+## 🧰 Bootstrapping del proyecto (RProj + here + fs)
+
+**Idea.** Abrir siempre el proyecto con `pm25_rm.Rproj` y “anclar” la raíz con `here::i_am()`.  
+Así todas las rutas se construyen con `here("carpeta","archivo")` sin escribir paths absolutos.
+
+**Archivo de arranque:** `R/01_configuracion.R`  
+**Anclaje (`here`):**
+```r
+here::i_am("R/01_configuracion.R")  # este script vive exactamente ahí
+```
+
+## Árbol inicial del repositorio (snapshot)
+
+Generado automáticamente con fs::dir_tree() desde R/01_configuracion.R
+
+```
+/pm25_rm
+├── datos_crudos
+├── datos_procesados
+├── figs
+├── LICENSE
+├── output
+├── pm25_rm.Rproj
+├── R
+│   └── 01_configuracion.R
+├── README.md
+└── reports
+```
+
