@@ -1,4 +1,4 @@
-# PM2.5 - Región Metropolitana (2018–2024): visualización y análisis
+# PM2.5 - Región Metropolitana (2018-2024): visualización y análisis
 **Proyecto Final del Curso Visualización y Análisis de Datos Medioambientales (AGP3141)**  
 Docente: **@Saryace** · Autora: **@elenalazo20** · Licencia: MIT
 
@@ -34,7 +34,7 @@ Este documento es un **reporte vivo**: aquí registro la historia del proyecto (
 
 > **Definición operativa de excedencia:** día en que el promedio diario de PM2.5 supera el umbral (Chile 25 µg/m³; OMS 15 µg/m³).
 
-## 🧰 Bootstrapping del proyecto (RProj + here + fs)
+## 🧰 Paso 1: Bootstrapping del proyecto (RProj + here + fs)
 
 **Idea.** Abrir siempre el proyecto con `pm25_rm.Rproj` y “anclar” la raíz con `here::i_am()`.  
 Así todas las rutas se construyen con `here("carpeta","archivo")` sin escribir paths absolutos.
@@ -63,5 +63,62 @@ Generado automáticamente con fs::dir_tree() desde R/01_configuracion.R
 └── reports
 ```
 
+## Pasos siguientes... 
 
+- [x] **Paso 02 - Descarga + limpieza (calendario)**  
+  Usé `{AtmChile}` para traer PM2.5 horario 2018–2024 para la RM (13 estaciones).  
+  Normalicé tipos/columnas, filtré valores imposibles y agregué diario y anual por estación.  
+  **Salidas:**
+  - `output/diccionario_estaciones_RM.csv` (estación, lon/lat)
+  - `datos_crudos/pm25_rm_horario.csv` (aprox. **797k** filas)
+  - `datos_procesados/pm25_diario.csv`
+  - `datos_procesados/pm25_anual_estacion.csv`
+
+- [x] **Paso 03 - Estación → Comuna (join espacial)**  
+  Si no existía, generé `datos_crudos/comunas_rm.geojson` con `{chilemapas}` (Región 13).  
+  Hice un join punto→polígono (y “rescate” al polígono más cercano cuando un punto cae en borde).  
+  Convertí `pm25_media`/`anio` a tipos seguros antes de promediar.  
+  **Salida principal:**  
+  - `datos_procesados/pm25_anual_comuna.csv` (PM2.5 medio anual por comuna y año)  
+  (Si más adelante calculo 24 h móvil, también se guardará `pm25_anual_comuna_24h.csv`.)
+
+---
+
+## 🔁 Reproducibilidad (hasta aquí)
+
+```r
+# 1) Estructura base y utilidades
+source(here::here("R","01_configuracion.R"))
+
+# 2) Descarga + limpieza (calendario)
+source(here::here("R","02_descarga_limpieza.R"))
+
+# 3) Join estación→comuna (auto-crea comunas_rm.geojson si falta)
+source(here::here("R","03_estacion_a_comuna.R"))
+
+
+## 📂 Estado actual del arbol de la repo (snapshot)
+
+```
+C:/Users/elena/Documents/GitHub/pm25_rm
+├── datos_crudos
+│   ├── comunas_rm.geojson
+│   └── pm25_rm_horario.csv
+├── datos_procesados
+│   ├── pm25_anual_comuna.csv
+│   ├── pm25_anual_estacion.csv
+│   └── pm25_diario.csv
+├── figs
+├── LICENSE
+├── output
+│   ├── diccionario_estaciones_RM.csv
+│   └── estructura_proyecto.md
+├── pm25_rm.Rproj
+├── R
+│   ├── 01_configuracion.R
+│   ├── 02_descarga_limpieza.R
+│   └── 03_estacion_a_comuna.R
+├── README.md
+└── reports
+```
 
