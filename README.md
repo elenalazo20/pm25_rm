@@ -63,3 +63,5 @@ Generado automáticamente con fs::dir_tree() desde R/01_configuracion.R
 └── reports
 ```
 
+
+
