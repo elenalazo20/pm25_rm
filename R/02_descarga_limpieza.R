@@ -1,96 +1,159 @@
 # R/02_descarga_limpieza.R -------------------------------------------------
 suppressPackageStartupMessages({
-  library(here);      here::i_am("R/02_descarga_limpieza.R")
-  library(fs)
-  library(dplyr)
-  library(readr)
-  library(purrr)
-  library(lubridate)
-  library(janitor)
-  library(stringr)
+  library(here);    here::i_am("R/02_descarga_limpieza.R")
+  library(dplyr);   library(readr);   library(purrr)
+  library(lubridate); library(janitor); library(fs); library(stringr)
+  library(sf)
   library(AtmChile)
 })
 
 options(readr.show_col_types = FALSE, dplyr.summarise.inform = FALSE)
 
-# ------------------ 0) Catálogo RM y diccionario de estaciones -----------
-suppressPackageStartupMessages({
-  library(AtmChile); library(dplyr); library(readr); library(janitor)
-  library(stringr);  library(here);   library(fs)
-})
-
-to_num <- function(x) {
-  if (is.numeric(x)) return(x)
+# ------------ helpers ------------
+info <- function(...) cat("[INFO]", sprintf(...), "\n")
+stop_if_empty <- function(df, msg) if (nrow(df) == 0) stop(msg, call. = FALSE)
+parse_num <- function(x) {
+  if (is.numeric(x)) return(as.numeric(x))
   x <- as.character(x)
-  # admite coma o punto decimal
-  if (any(grepl(",\\d+$", x))) {
-    readr::parse_number(x, locale = readr::locale(decimal_mark = ",", grouping_mark = "."))
-  } else {
-    readr::parse_number(x, locale = readr::locale(decimal_mark = ".", grouping_mark = ","))
+  y <- readr::parse_number(x, locale = readr::locale(decimal_mark = ".", grouping_mark = ","))
+  if (all(is.na(y))) {
+    y <- readr::parse_number(x, locale = readr::locale(decimal_mark = ",", grouping_mark = "."))
   }
+  y
 }
 
-# Catálogo general (metadatos)
-cat_est <- AtmChile::ChileAirQuality() %>% janitor::clean_names()
+# ------------ 0) Catálogo RM + diccionario robusto (lon/lat) ------------
+cat_est <- AtmChile::ChileAirQuality()
+stopifnot(all(c("Region","Ciudad","Estacion","Latitud","Longitud") %in% names(cat_est)))
 
-# Filtrar RM (tolerante a nombres de columna)
-if ("codigo_region" %in% names(cat_est)) {
-  cat_rm <- dplyr::filter(cat_est, codigo_region == 13)
-} else if ("region" %in% names(cat_est)) {
-  cat_rm <- dplyr::filter(cat_est, region %in% c("RM", "Metropolitana", "Región Metropolitana"))
-} else {
-  stop("No encuentro columna de región en el catálogo de AtmChile.")
-}
-
-# Elegir columna de nombre de estación (tolerante)
-est_col <- intersect(c("estacion","ciudad","site","nombre_estacion","estacion_nombre"), names(cat_rm))
-stopifnot(length(est_col) >= 1)
-
-# Candidatas a lon/lat en el catálogo
-lon_cand <- intersect(c("lon","longitud","longitude","x"), names(cat_rm))
-lat_cand <- intersect(c("lat","latitud","latitude","y"), names(cat_rm))
-
-# Si no aparecen lon/lat explícitas, usar el par latitud/longitud (algunos catálogos vienen cruzados)
-if (length(lon_cand) == 0 && all(c("latitud","longitud") %in% names(cat_rm))) {
-  lon_cand <- "latitud"
-  lat_cand <- "longitud"
-}
-
-stopifnot(length(lon_cand) >= 1, length(lat_cand) >= 1)
-
-dicc_rm_raw <- cat_rm %>%
+dicc_rm <- cat_est %>%
+  filter(Region == "RM") %>%
   transmute(
-    estacion_raw = .data[[est_col[1]]],
-    lon_raw      = to_num(.data[[lon_cand[1]]]),
-    lat_raw      = to_num(.data[[lat_cand[1]]])
-  ) %>%
-  filter(is.finite(lon_raw), is.finite(lat_raw))
+    estacion = Estacion,
+    lon = parse_num(Longitud),
+    lat = parse_num(Latitud)
+  )
 
-# Heurística para detectar cruce lat/lon y corregir a lon/lat válidos de la RM
-# RM esperada: lon ~ [-75, -69], lat ~ [-34.5, -32]
-med_lon <- median(dicc_rm_raw$lon_raw, na.rm = TRUE)
-med_lat <- median(dicc_rm_raw$lat_raw, na.rm = TRUE)
-
-swap <- (abs(med_lon) < 65) || (abs(med_lat) > 65) || (med_lon > -60) || (med_lon < -90)
-if (swap) {
-  tmp <- dicc_rm_raw$lon_raw
-  dicc_rm_raw$lon_raw <- dicc_rm_raw$lat_raw
-  dicc_rm_raw$lat_raw <- tmp
+# bbox de la RM para detectar lon/lat cruzados (robusto)
+if (!requireNamespace("chilemapas", quietly = TRUE)) install.packages("chilemapas")
+rm_geo_bbox <- {
+  g <- chilemapas::mapa_comunas %>% dplyr::filter(codigo_region == 13)
+  if (!inherits(g, "sf")) g <- sf::st_as_sf(g)
+  crs_g <- sf::st_crs(g)
+  if (!is.na(crs_g) && (is.na(crs_g$epsg) || crs_g$epsg != 4326)) {
+    g <- sf::st_transform(g, 4326)
+  }
+  sf::st_bbox(g)
 }
 
-dicc_rm <- dicc_rm_raw %>%
-  transmute(
-    estacion = as.character(estacion_raw),
-    lon = lon_raw,
-    lat = lat_raw
-  ) %>%
-  distinct(estacion, lon, lat) %>%
+inside_current <- with(dicc_rm, lon >= rm_geo_bbox["xmin"] & lon <= rm_geo_bbox["xmax"] &
+                         lat >= rm_geo_bbox["ymin"] & lat <= rm_geo_bbox["ymax"])
+inside_swapped <- with(dicc_rm, lat >= rm_geo_bbox["xmin"] & lat <= rm_geo_bbox["xmax"] &
+                         lon >= rm_geo_bbox["ymin"] & lon <= rm_geo_bbox["ymax"])
+
+if (sum(inside_swapped, na.rm = TRUE) > sum(inside_current, na.rm = TRUE)) {
+  dicc_rm <- dicc_rm %>% mutate(tmp = lon, lon = lat, lat = tmp, tmp = NULL)
+  info("Diccionario: detectado lon/lat cruzados → corregido.")
+}
+
+dicc_rm <- dicc_rm %>%
+  filter(is.finite(lon), is.finite(lat)) %>%
+  distinct(estacion, .keep_all = TRUE) %>%
   arrange(estacion)
 
-# Validaciones de rango (básicas para RM)
-stopifnot(all(dicc_rm$lon < -60 & dicc_rm$lon > -80),
-          all(dicc_rm$lat < -30 & dicc_rm$lat > -40))
+dir_create(here("output"))
+write_csv(dicc_rm %>% select(estacion, lon, lat),
+          here("output","diccionario_estaciones_RM.csv"))
+info("Diccionario RM guardado: %s (n=%d)", here("output","diccionario_estaciones_RM.csv"), nrow(dicc_rm))
 
-fs::dir_create(here("output"))
-readr::write_csv(dicc_rm, here("output","diccionario_estaciones_RM.csv"))
-message("Diccionario RM creado: output/diccionario_estaciones_RM.csv  (cols: estacion, lon, lat)")
+# ------------ 1) Descarga PM2.5 horario (todas las estaciones) ------------
+ini <- "01/01/2018"  # dd/mm/yyyy
+fin <- "31/12/2024"
+
+trae_pm25 <- purrr::possibly(function(est){
+  out <- AtmChile::ChileAirQuality(
+    Comunas        = est,
+    Parametros     = "PM25",
+    fechadeInicio  = ini,
+    fechadeTermino = fin,
+    Curar          = TRUE,
+    st             = TRUE
+  )
+  out <- janitor::clean_names(out)
+
+  # Fuerza status s_* a character (evita choques al unir)
+  stat_cols <- grep("^s_", names(out), value = TRUE)
+  if (length(stat_cols)) out[stat_cols] <- lapply(out[stat_cols], as.character)
+
+  # Detecta columna PM y la hace numérica
+  pm_col <- names(out)[stringr::str_detect(names(out), "(^pm2?5$|pm25)")][1]
+  out[[pm_col]] <- suppressWarnings(as.numeric(out[[pm_col]]))
+
+  out$estacion <- est
+  out
+}, otherwise = tibble(), quiet = TRUE)
+
+info("Descargando PM2.5 horario para estaciones de la RM…")
+pm_h_list <- purrr::map(dicc_rm$estacion, trae_pm25)
+pm_h <- dplyr::bind_rows(pm_h_list)
+stop_if_empty(pm_h, "Descarga vacía: no se obtuvieron datos horarios.")
+
+# ------------ 2) Limpieza mínima y agregado diario/anual -----------------
+pm_h <- pm_h %>% clean_names()
+
+# Detecta columnas clave (tolerante)
+col_fecha <- intersect(c("fecha_hora","date","datetime","fecha"), names(pm_h))[1]
+stopifnot(!is.na(col_fecha))
+col_pm <- names(pm_h)[str_detect(names(pm_h), regex("^pm\\s*2?5$", ignore_case = TRUE))][1]
+if (is.na(col_pm)) col_pm <- names(pm_h)[str_detect(names(pm_h), regex("pm25", ignore_case = TRUE))][1]
+stopifnot(!is.na(col_pm))
+col_est <- intersect(c("estacion","station","site","ciudad","nombre_estacion"), names(pm_h))[1]
+stopifnot(!is.na(col_est))
+
+pm_h <- pm_h %>%
+  transmute(
+    estacion = .data[[col_est]],
+    date     = parse_date_time(.data[[col_fecha]],
+                               orders = c("dmy HMS","dmy HM","ymd HMS","ymd HM","dmy","ymd"),
+                               tz = "America/Santiago"),
+    pm25     = suppressWarnings(as.numeric(.data[[col_pm]]))
+  ) %>%
+  filter(!is.na(date), !is.na(pm25), pm25 >= 0, pm25 <= 500)
+
+stop_if_empty(pm_h, "Tras limpieza, no quedan datos horarios válidos.")
+
+# Agregado diario por estación
+pm_d <- pm_h %>%
+  mutate(fecha = as_date(date)) %>%
+  group_by(estacion, fecha) %>%
+  summarise(pm25_diario = mean(pm25, na.rm = TRUE), .groups = "drop")
+
+stop_if_empty(pm_d, "Agregado diario vacío.")
+
+# Agregado anual por estación
+pm_anual_est <- pm_d %>%
+  mutate(anio = year(fecha)) %>%
+  group_by(estacion, anio) %>%
+  summarise(pm25_media = mean(pm25_diario, na.rm = TRUE),
+            n_dias     = n(),
+            .groups    = "drop") %>%
+  mutate(
+    anio       = as.integer(anio),
+    pm25_media = as.numeric(pm25_media)
+  ) %>%
+  filter(is.finite(pm25_media), n_dias > 0)
+
+stop_if_empty(pm_anual_est, "Agregado anual por estación vacío.")
+
+# Guardar salidas
+dir_create(here("datos_crudos"))
+dir_create(here("datos_procesados"))
+
+write_csv(pm_h,          here("datos_crudos","pm25_rm_horario.csv"))
+info("Guardado crudo: %s (n=%d)", here("datos_crudos","pm25_rm_horario.csv"), nrow(pm_h))
+
+write_csv(pm_d,          here("datos_procesados","pm25_diario.csv"))
+write_csv(pm_anual_est,  here("datos_procesados","pm25_anual_estacion.csv"))
+info("Guardado (calendario): pm25_diario.csv (n=%d días) y pm25_anual_estacion.csv (n=%d filas)",
+     nrow(pm_d), nrow(pm_anual_est))
+
