@@ -13,98 +13,84 @@ suppressPackageStartupMessages({
 
 options(readr.show_col_types = FALSE, dplyr.summarise.inform = FALSE)
 
-# 0) Catálogo RM -> diccionario de estaciones ------------------------------
-cat_est <- AtmChile::ChileAirQuality()
-req <- c("Region","Ciudad","Estacion","Latitud","Longitud")
-stopifnot(all(req %in% names(cat_est)))
+# ------------------ 0) Catálogo RM y diccionario de estaciones -----------
+suppressPackageStartupMessages({
+  library(AtmChile); library(dplyr); library(readr); library(janitor)
+  library(stringr);  library(here);   library(fs)
+})
 
-dicc_rm <- cat_est %>%
-  filter(Region == "RM") %>%
+to_num <- function(x) {
+  if (is.numeric(x)) return(x)
+  x <- as.character(x)
+  # admite coma o punto decimal
+  if (any(grepl(",\\d+$", x))) {
+    readr::parse_number(x, locale = readr::locale(decimal_mark = ",", grouping_mark = "."))
+  } else {
+    readr::parse_number(x, locale = readr::locale(decimal_mark = ".", grouping_mark = ","))
+  }
+}
+
+# Catálogo general (metadatos)
+cat_est <- AtmChile::ChileAirQuality() %>% janitor::clean_names()
+
+# Filtrar RM (tolerante a nombres de columna)
+if ("codigo_region" %in% names(cat_est)) {
+  cat_rm <- dplyr::filter(cat_est, codigo_region == 13)
+} else if ("region" %in% names(cat_est)) {
+  cat_rm <- dplyr::filter(cat_est, region %in% c("RM", "Metropolitana", "Región Metropolitana"))
+} else {
+  stop("No encuentro columna de región en el catálogo de AtmChile.")
+}
+
+# Elegir columna de nombre de estación (tolerante)
+est_col <- intersect(c("estacion","ciudad","site","nombre_estacion","estacion_nombre"), names(cat_rm))
+stopifnot(length(est_col) >= 1)
+
+# Candidatas a lon/lat en el catálogo
+lon_cand <- intersect(c("lon","longitud","longitude","x"), names(cat_rm))
+lat_cand <- intersect(c("lat","latitud","latitude","y"), names(cat_rm))
+
+# Si no aparecen lon/lat explícitas, usar el par latitud/longitud (algunos catálogos vienen cruzados)
+if (length(lon_cand) == 0 && all(c("latitud","longitud") %in% names(cat_rm))) {
+  lon_cand <- "latitud"
+  lat_cand <- "longitud"
+}
+
+stopifnot(length(lon_cand) >= 1, length(lat_cand) >= 1)
+
+dicc_rm_raw <- cat_rm %>%
   transmute(
-    site     = Ciudad,
-    estacion = Estacion,
-    # OJO: en el catálogo Latitud/Longitud vienen cruzados para RM
-    lon      = Latitud,   # -70.x (longitud real)
-    lat      = Longitud   # -33.x (latitud real)
-  ) %>% distinct() %>% arrange(estacion)
-
-dir_create(here("output"))
-write_csv(dicc_rm, here("output","diccionario_estaciones_RM.csv"))
-message("Estaciones RM detectadas: ", nrow(dicc_rm))
-
-# 1) Descarga PM2.5 horario (todas las estaciones) ------------------------
-ini <- "01/01/2018"   # dd/mm/yyyy
-fin <- "31/12/2024"
-
-trae_pm25 <- purrr::possibly(function(est){
-  out <- AtmChile::ChileAirQuality(
-    Comunas        = est,
-    Parametros     = "PM25",
-    fechadeInicio  = ini,
-    fechadeTermino = fin,
-    Curar          = TRUE,
-    st             = TRUE
-  )
-  out <- janitor::clean_names(out)
-
-  # Fuerza s_* a character (evita choque de tipos al unir)
-  stat_cols <- grep("^s_", names(out), value = TRUE)
-  if (length(stat_cols)) out[stat_cols] <- lapply(out[stat_cols], as.character)
-
-  # Detecta columna PM2.5 y la fuerza a numeric
-  cand_pm <- names(out)[str_detect(names(out), "(^pm\\s*2?5$|pm25|pm_2_5)")]
-  stopifnot(length(cand_pm) > 0)
-  pm_col <- cand_pm[1]
-  out[[pm_col]] <- suppressWarnings(as.numeric(out[[pm_col]]))
-
-  # Asegura etiqueta de estación
-  if (!"estacion" %in% names(out)) out$estacion <- est
-  out
-}, otherwise = tibble(), quiet = TRUE)
-
-message("Descargando PM2.5 horario para todas las estaciones de la RM…")
-pm_h <- map(dicc_rm$estacion, trae_pm25) %>% bind_rows()
-stopifnot(nrow(pm_h) > 0)
-
-dir_create(here("datos_crudos"))
-write_csv(pm_h, here("datos_crudos","pm25_rm_horario.csv"))
-message("Guardado crudo: datos_crudos/pm25_rm_horario.csv (", nrow(pm_h), " filas)")
-
-# 2) Limpieza mínima y dataset horario estándar ---------------------------
-pm_h <- pm_h %>% clean_names()
-
-col_fecha <- intersect(c("fecha_hora","date_time","datetime","date","fecha","fechahora"), names(pm_h))[1]
-stopifnot(!is.na(col_fecha))
-cand_pm   <- names(pm_h)[str_detect(names(pm_h), "(^pm\\s*2?5$|pm25|pm_2_5)")]
-col_pm    <- cand_pm[1]; stopifnot(!is.na(col_pm))
-col_est   <- intersect(c("estacion","station","site","ciudad","nombre_estacion"), names(pm_h))[1]
-stopifnot(!is.na(col_est))
-
-pm_h <- pm_h %>%
-  transmute(
-    estacion = .data[[col_est]],
-    date     = parse_date_time(.data[[col_fecha]],
-                               orders = c("dmy HMS","dmy HM","ymd HMS","ymd HM"),
-                               tz = "America/Santiago"),
-    pm25     = suppressWarnings(as.numeric(.data[[col_pm]]))
+    estacion_raw = .data[[est_col[1]]],
+    lon_raw      = to_num(.data[[lon_cand[1]]]),
+    lat_raw      = to_num(.data[[lat_cand[1]]])
   ) %>%
-  filter(!is.na(date), !is.na(pm25), pm25 >= 0, pm25 <= 500) %>%
-  arrange(estacion, date)
+  filter(is.finite(lon_raw), is.finite(lat_raw))
 
-# 3) Agregado diario y anual (calendario) ---------------------------------
-pm_d <- pm_h %>%
-  mutate(fecha = as.Date(date)) %>%
-  group_by(estacion, fecha) %>%
-  summarise(pm25_diario = mean(pm25, na.rm = TRUE), .groups = "drop")
+# Heurística para detectar cruce lat/lon y corregir a lon/lat válidos de la RM
+# RM esperada: lon ~ [-75, -69], lat ~ [-34.5, -32]
+med_lon <- median(dicc_rm_raw$lon_raw, na.rm = TRUE)
+med_lat <- median(dicc_rm_raw$lat_raw, na.rm = TRUE)
 
-pm_anual_est <- pm_d %>%
-  mutate(anio = year(fecha)) %>%
-  group_by(estacion, anio) %>%
-  summarise(pm25_media = mean(pm25_diario, na.rm = TRUE),
-            n_dias     = n(), .groups = "drop")
+swap <- (abs(med_lon) < 65) || (abs(med_lat) > 65) || (med_lon > -60) || (med_lon < -90)
+if (swap) {
+  tmp <- dicc_rm_raw$lon_raw
+  dicc_rm_raw$lon_raw <- dicc_rm_raw$lat_raw
+  dicc_rm_raw$lat_raw <- tmp
+}
 
-dir_create(here("datos_procesados"))
-write_csv(pm_d,         here("datos_procesados","pm25_diario.csv"))
-write_csv(pm_anual_est, here("datos_procesados","pm25_anual_estacion.csv"))
-message("02 listo ✅ — salidas: pm25_diario.csv y pm25_anual_estacion.csv")
+dicc_rm <- dicc_rm_raw %>%
+  transmute(
+    estacion = as.character(estacion_raw),
+    lon = lon_raw,
+    lat = lat_raw
+  ) %>%
+  distinct(estacion, lon, lat) %>%
+  arrange(estacion)
 
+# Validaciones de rango (básicas para RM)
+stopifnot(all(dicc_rm$lon < -60 & dicc_rm$lon > -80),
+          all(dicc_rm$lat < -30 & dicc_rm$lat > -40))
+
+fs::dir_create(here("output"))
+readr::write_csv(dicc_rm, here("output","diccionario_estaciones_RM.csv"))
+message("Diccionario RM creado: output/diccionario_estaciones_RM.csv  (cols: estacion, lon, lat)")
