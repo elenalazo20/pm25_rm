@@ -1,0 +1,6 @@
+/* Más espacio antes de los títulos principales */
+h1, .h1, h2, .h2, h3, .h3 {
+  margin-top: 84px;
+}
+
+/* Puedes ajustar el valor: 48px, 64px, etc. si lo ves muy grande */
