@@ -14,7 +14,7 @@ cat("Raíz del proyecto:", here::here(), "\n")
 carpetas <- c("datos_crudos",
               "datos_procesados",
               "figuras",
-              "salidas",
+              "resultados",
               "reportes")
 
 fs::dir_create(here::here(carpetas))
@@ -49,7 +49,7 @@ guardar_fig <- function(p, file, w = 10, h = 6, dpi = 300) {
 # 4) Helper para snapshot del árbol de carpetas ---------------------------
 # Solo se define; se llama a mano cuando lo necesite
 snapshot_arbol <- function(niveles = 3,
-                           base = here::here("salidas", "estructura_proyecto")) {
+                           base = here::here("resultados", "estructura_proyecto")) {
 
   fs::dir_create(fs::path_dir(base))
 
