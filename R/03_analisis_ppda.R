@@ -5,10 +5,9 @@
 library(tidyverse)
 library(lubridate)
 library(here)
-library(gt) # Para la tabla profesional
+library(gt) # Para la tabla
 
 # Cargamos el CSV que generó el script 02.
-# Este es el flujo de trabajo de la profesora.
 datos_rm_raw <- read_csv(here("resultados", "csv", "csv_rm.csv"))
 
 # --- 2. Preparación Inicial y Creación de Períodos ---
@@ -30,7 +29,7 @@ datos_rm <- datos_rm_raw %>%
     )
   )
 
-# --- 3. Función de Resumen (CI de la Profesora) ---
+# --- 3. Función de Resumen ---
 # Esta función calcula la media y el Intervalo de Confianza (CI)
 ci_summary_pm25 <- function(datos, tiempo) {
   datos %>%
