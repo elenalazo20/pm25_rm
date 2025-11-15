@@ -18,28 +18,121 @@ format:
     css: "style_ppda.css"                     
 ---
 
+```{r}
+#| label: setup
+#| echo: false
+#| message: false
+#| warning: false
 
+# Fijar raíz del proyecto y cargar datos procesados
+source(here::here("R", "01_configuracion.R"))
+load(here::here("datos_procesados", "analisis_pm25_ppda.RData"))
+```
+## 1. Introducción
 
+Este informe forma parte del curso **Análisis y Visualización de Datos Medioambientales** y tiene como objetivo evaluar de forma descriptiva el impacto del **Plan de Prevención y Descontaminación Atmosférica (PPDA, D.S. 31/2016)** sobre las concentraciones de material particulado fino (**PM₂.₅**) en la **Región Metropolitana de Santiago** durante el periodo **2014–2024**.
 
-## Introduction
+El **Decreto Supremo N° 31/2016**, que *establece el PPDA para la Región Metropolitana de Santiago*, fue publicado el **24 de noviembre de 2017**. Dentro de sus medidas estructurales se incorpora el **Programa de Compensación de Emisiones (PCE)**, cuyo objetivo es avanzar hacia el cumplimiento de las normas primarias de calidad ambiental del aire vigentes, en particular para el **Material Particulado Respirable (MP)**.  
 
-Quarto is probably my favorite tool in the R/Python universe. Transforming your code and thoughts into a stunning report in one click always blows my mind.
+El PCE busca compensar las **emisiones totales anuales, directas e indirectas**, de proyectos, actividades y/o modificaciones de proyectos existentes que, en cualquiera de sus etapas, generan un aumento sobre la *situación base*, en valores iguales o superiores a los establecidos en el **artículo 64 del PPDA**. Se entiende por *situación base* todas aquellas emisiones atmosféricas existentes en la RMS **previo al ingreso** del proyecto o actividad al Sistema de Evaluación de Impacto Ambiental (SEIA).
 
-While the default Quarto appearance **looks great**, there are [a few tweaks](https://www.productive-r-workflow.com/quarto-tricks) I always apply to elevate the report even further. Rather than manually adding them each time, I bundled everything into a custom format called `lumo`.
+En este contexto, el informe define dos periodos de análisis:
 
+- **Pre-PPDA (2014–2017):** años previos a la publicación del D.S. 31/2016 y a la implementación efectiva de las medidas estructurales del plan, incluyendo el PCE.  
+- **Post-PPDA (2018–2024):** periodo posterior a la publicación del decreto, donde se espera observar los primeros efectos agregados de la implementación del PPDA sobre los niveles de PM₂.₅.
 
-::: {.column-margin}
+El análisis se basa en datos horarios de PM₂.₅ de la red oficial de monitoreo, descargados mediante el paquete `AtmChile`, y se centra en un conjunto de estaciones urbanas representativas de la región. El foco del informe es mostrar, de forma clara y reproducible, cómo han evolucionado las concentraciones de PM₂.₅ tras la implementación del PPDA, utilizando un flujo de trabajo reproducible en R y Quarto.
 
-Btw, you can learn how to master Quarto thanks to my online course: [Productive R Workflow](https://www.productive-r-workflow.com)
+***
 
-:::
+## 2. Datos y métodos
 
+### 2.1 Fuentes de datos
 
-This document aims at showcasing how a quarto document made with the `lumo` format looks like.
+Los datos de calidad del aire se obtuvieron usando la función `ChileAirQuality` del paquete **AtmChile**, solicitando registros horarios de PM₂.₅ para el periodo **2014–2024** y para un conjunto de comunas de la Región Metropolitana (por ejemplo, Cerrillos, Cerro Navia, El Bosque, Independencia, Las Condes, Pudahuel, Puente Alto, Quilicura, entre otras).
 
+Tras la descarga se realizaron los siguientes pasos de limpieza y preparación:
 
-## Documentation
+- estandarización de nombres de variables y estaciones,  
+- eliminación de registros faltantes o claramente erróneos,  
+- cálculo de la concentración media diaria y anual por estación.
 
-The documentation for this quarto custom format is available [here](https://www.productive-r-workflow.com/r/bonus/lumo-quarto-template)
+Estos pasos se implementan en el script **`R/02_descarga_limpieza.R`**.
 
+### 2.2 Definición de períodos y variables derivadas
 
+En el script **`R/03_analisis_ppda.R`** se construyen las variables analíticas clave:
+
+- **Periodo PPDA (`periodo_ppda`):**  
+  - *Pre-PPDA:* años \< 2018 (2014–2017)  
+  - *Post-PPDA:* años ≥ 2018 (2018–2024), posterior a la publicación del D.S. 31/2016.
+
+- **Año calendario (`year`):** 2014–2024.  
+
+- **Invierno (`is_winter`):** meses de mayo a agosto, con el fin de focalizar el análisis de días críticos en la época del año de mayor exposición.  
+
+- **Indicadores resumen:**
+  - media anual de PM₂.₅ por estación,  
+  - porcentaje de días de invierno con PM₂.₅ ≥ 50 µg/m³,  
+  - promedio de PM₂.₅ por periodo (Pre/Post) con intervalos de confianza.
+
+Los objetos resultantes (`datos_anuales`, `datos_superacion`, `datos_cambio`) se guardan en  
+**`datos_procesados/analisis_pm25_ppda.RData`** y son los que se cargan al inicio de este reporte.
+
+***
+
+## 3. Resultados
+
+En esta sección se presentan los principales resultados descriptivos del análisis:
+
+1. **Tabla 1 – Cambios en el promedio de $\text{PM}_{2.5}$ por estación**, comparando los periodos Pre y Post PPDA, junto con sus intervalos de confianza (objeto `datos_cambio`).  
+2. **Gráfico 1 – Contexto espacial:** mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de PM₂.₅.  
+3. **Gráfico 2 – Tendencia anual de $\text{PM}_{2.5}$ (2014–2024)** por estación, contrastando las series con las recomendaciones de la OMS y la norma chilena (objeto `datos_anuales`).  
+4. **Gráfico 3 – Frecuencia de días críticos en invierno**, mostrando el porcentaje de días con $\text{PM}_{2.5}$ ≥ 50 µg/m³ antes y después del PPDA (objeto `datos_superacion`).
+
+A continuación se dejan los espacios para insertar la tabla y las figuras.
+
+### 3.1 Tabla 1 – Promedio de PM₂.₅ Pre/Post PPDA por estación
+```{r tabla1-gt}
+#| label: tbl-resumen-gt
+#| tbl-cap: "Tabla 1. Concentraciones promedio de PM2.5 y cambio neto por estación."
+
+# Preparamos los datos de la tabla (usando datos_cambio)
+tabla1_datos <- datos_cambio %>%
+  select(site, mean_Pre, mean_Post, reduccion, ymin_Pre, ymax_Pre, ymin_Post, ymax_Post) %>%
+  mutate(across(where(is.numeric), ~ round(., 1)))
+
+tabla1_datos %>%
+  gt() %>%
+  tab_header(
+    title = md("**Evolución de la Concentración Anual de PM2.5 en la RM**"),
+    subtitle = md("Comparación de promedios anuales antes (2014-2017) y después (2018-Actual) del PPDA.")
+  ) %>%
+  cols_label(
+    site = "Estación",
+    mean_Pre = "Promedio Pre-PPDA",
+    mean_Post = "Promedio Post-PPDA",
+    reduccion = "Reducción Neta",
+    ymin_Pre = "CI Inf. Pre",
+    ymax_Pre = "CI Sup. Pre",
+    ymin_Post = "CI Inf. Post",
+    ymax_Post = "CI Sup. Post"
+  ) %>%
+  data_color(
+    columns = reduccion,
+    palette = c("#F8766D", "white", "#00BFC4"), # Rojo (empeora) -> Blanco -> Azul (mejora)
+    domain = c(min(tabla1_datos$reduccion, na.rm=TRUE), 0, max(tabla1_datos$reduccion, na.rm=TRUE))
+  ) %>%
+  tab_spanner( # Agrupamos los Intervalos de Confianza (CI)
+    label = "Intervalo de Confianza (95%) - Pre PPDA",
+    columns = c(ymin_Pre, ymax_Pre)
+  ) %>%
+  tab_spanner(
+    label = "Intervalo de Confianza (95%) - Post PPDA",
+    columns = c(ymin_Post, ymax_Post)
+  ) %>%
+  fmt_number(columns = where(is.numeric), decimals = 1) %>%
+  tab_source_note(
+    source_note = "Fuente: Datos SINCA vía AtmChile. Periodos: Pre-PPDA (2014-2017), Post-PPDA (2018-Actual)."
+  )
+```
