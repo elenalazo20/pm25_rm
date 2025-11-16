@@ -10,7 +10,7 @@ number-sections: true
 format:
   lumo-html:
     logo: "UC_Chile.png"                            
-    github-repo: "https://github.com/elenalazo/pm25_rm"  
+    github-repo: "https://github.com/elenalazo20/pm25_rm"  
     primary-color: "#69b3a2"
     self-contained: true
     is-particlejs-enabled: false
@@ -343,4 +343,29 @@ En conjunto, la Tabla 1 y los Gráficos 1–3 muestran una **reducción consiste
 La evolución anual por estación indica que, tras 2018, los niveles de PM₂.₅ tienden a **bajar o estabilizarse en valores menores**, pero en la mayoría de los casos aún permanecen sobre la **norma OMS (5 µg/m³)** y, en varios años, también sobre la **norma chilena (20 µg/m³)**. En invierno, la proporción de días con PM₂.₅ ≥ 50 µg/m³ disminuye en todas las estaciones, lo que apunta a menos episodios críticos, aunque todavía son frecuentes en algunas zonas.
 
 En suma, los resultados son **compatibles con un efecto positivo del PPDA sobre la contaminación por PM₂.₅**, pero el análisis es descriptivo y no permite atribuir los cambios exclusivamente al plan. Futuros trabajos deberían incorporar modelos con contrafactual y ajuste por meteorología para estimar con mayor precisión el impacto atribuible al PPDA sobre la calidad del aire y la salud.
+
+
+## Material suplementario y recursos adicionales
+
+Este reporte cuenta con material suplementario en formato PDF, que incluye para cada estación de monitoreo (LC, EB, PU, QU, LF, PA, CEI, TALI, CN, IN, CEII) un análisis detallado del perfil horario y la tendencia anual de PM₂.₅ en el período 2014–2024.
+
+Como complemento, se sugiere revisar:
+
+- La información oficial del Ministerio del Medio Ambiente sobre los [Programas de Compensación de Emisiones (PCE)](https://airerm.mma.gob.cl/programas-de-compensacion-de-emisiones-pce/).
+- La [presentación en video sobre el PPDA RM y el Programa de Compensación de Emisiones](https://www.youtube.com/watch?v=ObYr4Z1SqFY&t=1576s).
+
+## Video recomendado
+
+<div style="text-align:center;">
+
+<iframe width="700" height="394"
+        src="https://www.youtube-nocookie.com/embed/ObYr4Z1SqFY?start=1576"
+        title="Presentación PPDA RM y Programa de Compensación de Emisiones"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen>
+</iframe>
+
+</div>
+
 
