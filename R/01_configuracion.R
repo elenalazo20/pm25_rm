@@ -2,13 +2,13 @@
 suppressPackageStartupMessages({
   library(here)
   library(fs)
-  library(ggplot2)   # para ggsave
+  library(ggplot2)
   library(tidyverse)
 })
 
 # 1) Fijar raíz del proyecto ----------------------------------------------
 here::i_am("R/01_configuracion.R")
-cat("Raíz del proyecto:", here::here(), "\n")
+#cat("Raíz del proyecto:", here::here(), "\n")
 
 # 2) Crear carpetas base (nombres en español) ------------------------------
 carpetas <- c("datos_crudos",

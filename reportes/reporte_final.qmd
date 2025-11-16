@@ -27,6 +27,9 @@ format:
 # Cargar librerías necesarias para el reporte
 library(gt)
 library(mapview) 
+library (leafsync)
+library(sf)
+library(patchwork)
 
 # Fijar raíz del proyecto y cargar datos procesados
 source(here::here("R", "01_configuracion.R"))
@@ -141,7 +144,90 @@ tabla1_datos %>%
   )
 ```
 
-### Gráfico 1 – Mapa de estaciones y niveles medios de PM₂.₅
+### Contexto espacial: mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de $\text{PM}_{2.5}$. 
+
+**Pregunta: ¿Cómo se distribuye espacialmente la contaminación promedio por $\text{PM}_{2.5}$ en las comunas monitoreadas de la Región Metropolitana, y cómo se compara esta distribución entre el período Pre-PPDA (2014-2017) y Post-PPDA (2018-2024)?**
+
+**Hipótesis Descriptiva (Expectativa): Se espera que las comunas del sector poniente y centro de Santiago (ej. Pudahuel, Cerro Navia, Santiago) presenten concentraciones promedio de $\text{PM}_{2.5}$ más altas que las comunas del sector oriente (ej. Las Condes), y se espera que esta diferencia se mantenga en ambos períodos.**
+
+```{r}
+#| label: fig-mapa-pre-post
+#| fig-cap: "Gráfico 1. Mapa de PM₂.₅ promedio Pre-PPDA (2014–2017) y Post-PPDA (2018–2024) por comuna."
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 5
+
+library(chilemapas)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+# 1. Mapa de comunas de la RM (forzamos sf)
+mapa_comunas_rm <- chilemapas::mapa_comunas |>
+  dplyr::filter(codigo_region == 13) |>
+  sf::st_as_sf()
+
+# 2. Diccionario sitio → comuna
+diccionario_sitios <- tibble::tibble(
+  site = c("LC", "EB", "PU", "QU", "LF", "PA", "CEI", "TALI", "CN", "IN", "CEII"),
+  codigo_comuna = c(
+    "13114", "13105", "13124", "13126", "13110", "13125", "13103",
+    "13601", "13104", "13109", "13103"
+  )
+)
+
+# 3. Promedios por comuna a partir de datos_cambio
+datos_agrupados_comuna <- datos_cambio |>
+  dplyr::left_join(diccionario_sitios, by = "site") |>
+  dplyr::filter(!is.na(codigo_comuna)) |>
+  dplyr::group_by(codigo_comuna) |>
+  dplyr::summarise(
+    mean_Pre  = mean(mean_Pre,  na.rm = TRUE),
+    mean_Post = mean(mean_Post, na.rm = TRUE),
+    reduccion = mean(reduccion, na.rm = TRUE),
+    .groups   = "drop"
+  )
+
+# 4. Unir los datos al shapefile y volver a asegurar sf
+mapa_comunas_rm_datos <- mapa_comunas_rm |>
+  dplyr::left_join(datos_agrupados_comuna, by = "codigo_comuna") |>
+  sf::st_as_sf()
+
+# 5. Rango común de la escala para Pre y Post
+limites_escala <- range(
+  c(mapa_comunas_rm_datos$mean_Pre,
+    mapa_comunas_rm_datos$mean_Post),
+  na.rm = TRUE
+)
+
+paleta_pm25 <- scale_fill_viridis_c(
+  name      = "PM\u2082.\u2085 promedio (µg/m³)",
+  option    = "plasma",
+  direction = -1,   # más oscuro = más concentración
+  limits    = limites_escala
+)
+
+# 6. Mapas Pre y Post
+mapa_pre_gg <- ggplot(mapa_comunas_rm_datos) +
+  geom_sf(aes(fill = mean_Pre), colour = "grey40", size = 0.1) +
+  paleta_pm25 +
+  labs(title = "Pre-PPDA (2014–2017)") +
+  theme_void()
+
+mapa_post_gg <- ggplot(mapa_comunas_rm_datos) +
+  geom_sf(aes(fill = mean_Post), colour = "grey40", size = 0.1) +
+  paleta_pm25 +
+  labs(title = "Post-PPDA (2018–2024)") +
+  theme_void()
+
+# 7. Composición final: Pre izquierda, Post derecha
+mapa_pre_gg + mapa_post_gg + patchwork::plot_layout(guides = "collect")
+
+```
+
+
 
 
 
