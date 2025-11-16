@@ -146,9 +146,9 @@ tabla1_datos %>%
 
 ### Contexto espacial: mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de $\text{PM}_{2.5}$. 
 
-**Pregunta: ¿Cómo se distribuye espacialmente la contaminación promedio por $\text{PM}_{2.5}$ en las comunas monitoreadas de la Región Metropolitana, y cómo se compara esta distribución entre el período Pre-PPDA (2014-2017) y Post-PPDA (2018-2024)?**
+**Pregunta:** ¿Cómo se distribuye espacialmente la contaminación promedio por $\text{PM}_{2.5}$ en las comunas monitoreadas de la Región Metropolitana, y cómo se compara esta distribución entre el período Pre-PPDA (2014-2017) y Post-PPDA (2018-2024)?**
 
-**Hipótesis Descriptiva (Expectativa): Se espera que las comunas del sector poniente y centro de Santiago (ej. Pudahuel, Cerro Navia, Santiago) presenten concentraciones promedio de $\text{PM}_{2.5}$ más altas que las comunas del sector oriente (ej. Las Condes), y se espera que esta diferencia se mantenga en ambos períodos.**
+**Hipótesis Descriptiva:** Se espera que las comunas del sector poniente y centro de Santiago (ej. Pudahuel, Cerro Navia, Santiago) presenten concentraciones promedio de $\text{PM}_{2.5}$ más altas que las comunas del sector oriente (ej. Las Condes), y se espera que esta diferencia se mantenga en ambos períodos.**
 
 ```{r}
 #| label: fig-mapa-pre-post
@@ -228,11 +228,42 @@ mapa_pre_gg + mapa_post_gg + patchwork::plot_layout(guides = "collect")
 ```
 
 
+### Tendencia anual de $\text{PM}_{2.5}$ (2014–2024)** por estación, contrastando las series con las recomendaciones de la OMS y la norma chilena.  
 
+**Pregunta:** ¿Cuál ha sido la tendencia del promedio anual de PM₂.₅ en cada estación antes y después de 2017, y qué tan lejos estamos de las metas de la OMS (5 µg/m³) y la Norma Chilena (20 µg/m³)?
 
+**Hipótesis Descriptiva:** Se espera ver una tendencia general a la baja en la mayoría de las estaciones después de la implementación del PPDA (2018), aunque la mayoría de las estaciones permanecerán por encima de la directriz de la OMS.
 
-### Gráfico 2 – Tendencia anual de PM₂.₅ (2014–2024) por estación
+```{r}
+#| label: fig-tendencia-facet
+#| fig-cap: "Gráfico 2. Evolución anual de PM₂.₅ por estación (2014–2024), comparada con la Norma Chilena (20 µg/m³) y la guía OMS (5 µg/m³)."
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 8
 
+# Año de referencia del PPDA
+ppda_year <- 2018
 
-
-## Gráfico 3 – Días de invierno con PM₂.₅ ≥ 50 µg/m³
+datos_anuales |>
+  ggplot(aes(x = year, y = pm25_anual)) +
+  # Serie temporal
+  geom_line(color = "#3399FF", linewidth = 1) +
+  geom_point(color = "#004080", size = 2) +
+  # Normas de referencia
+  geom_hline(yintercept = 20, linetype = "solid",  color = "#CC3300", linewidth = 0.8) +
+  geom_hline(yintercept = 5,  linetype = "dashed", color = "#0066CC", linewidth = 0.6) +
+  # Implementación PPDA
+  geom_vline(xintercept = ppda_year, linetype = "dotted", color = "black", linewidth = 0.6) +
+  # Facetas por estación
+  facet_wrap(~ site, ncol = 3) +
+  # Etiquetas
+  labs(
+    x = "Año",
+    y = "PM₂.₅ promedio anual (µg/m³)"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
