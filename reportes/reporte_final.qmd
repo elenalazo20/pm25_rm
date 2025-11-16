@@ -15,7 +15,8 @@ format:
     self-contained: true
     is-particlejs-enabled: false
     bg-image: ""
-    css: "style_ppda.css"                     
+    css: "style_ppda.css"
+    include-after-body: footer.html                     
 ---
 
 ```{r}
