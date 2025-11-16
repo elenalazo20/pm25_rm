@@ -1,0 +1,93 @@
+---
+# YAML para la plantilla
+title: "Reporte Suplementario: Estación `r params$est_codigo`"
+author: "Análisis Detallado (2014-2024)"
+format:
+  pdf: # Generaremos PDFs como material suplementario
+    toc: true
+params:
+  est_codigo: "LC" # <-- Código de estación por defecto (para pruebas)
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup-suplementario}
+# Carga de librerías y datos
+library(tidyverse)
+library(lubridate)
+library(here)
+library(gt)
+
+# Cargamos los datos CSV originales
+datos_rm_raw <- read_csv(here("resultados", "csv", "csv_rm.csv"))
+
+# --- Filtramos los datos SOLO para esta estación ---
+datos_estacion <- datos_rm_raw %>%
+  # Usamos el parámetro 'est_codigo' que recibe el YAML
+  filter(site == params$est_codigo) %>%
+  mutate(
+    date = dmy_hm(date),
+    year = year(date),
+    month = month(date),
+    hour = hour(date),
+    periodo_ppda = if_else(year < 2018, "Pre-PPDA", "Post-PPDA")
+  )
+```
+
+1. Perfil Horario (Pre vs. Post PPDA)Este gráfico muestra el ciclo diario de $\text{PM}_{2.5}$ en la estación, comparando el promedio horario antes y después del PPDA.
+```{r}
+# Calculamos el promedio horario
+ci_summary_pm25_horario <- function(datos, tiempo) {
+  datos %>%
+    group_by(across(all_of(tiempo))) %>%
+    summarise(
+      n = sum(!is.na(concentration)),
+      mean = mean(concentration, na.rm = TRUE),
+      sd   = sd(concentration,  na.rm = TRUE),
+      se   = sd / sqrt(n),
+      ymin_ci = mean - 1.96 * se,
+      ymax_ci = mean + 1.96 * se,
+      .groups = "drop"
+    )
+}
+
+datos_horarios <- datos_estacion %>%
+  ci_summary_pm25_horario(tiempo = c("periodo_ppda", "hour"))
+
+# Graficamos el perfil
+ggplot(datos_horarios, aes(x = hour, y = mean, color = periodo_ppda, fill = periodo_ppda)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = ymin_ci, ymax = ymax_ci), alpha = 0.2, linetype = "dotted") +
+  labs(
+    title = paste("Perfil Diario PM2.5 en", params$est_codigo),
+    x = "Hora del día",
+    y = "PM2.5 Promedio (µg/m³)"
+  ) +
+  scale_x_continuous(breaks = seq(0, 23, by = 2)) +
+  theme_minimal()
+```
+
+2. Tendencia Anual (2014-2024)
+Este gráfico muestra la evolución de la media anual en esta estación.
+```{r}
+# Cargamos los datos anuales (calculados en el script 03)
+load(here("datos_procesados", "analisis_pm25_ppda.RData"))
+
+datos_anuales %>%
+  filter(site == params$est_codigo) %>%
+  ggplot(aes(x = year, y = pm25_anual)) +
+  geom_line(color = "#3399FF", linewidth = 1) +
+  geom_point(color = "#004080", size = 2) +
+  geom_hline(yintercept = 20, linetype = "solid", color = "#CC3300") +
+  geom_hline(yintercept = 5, linetype = "dashed", color = "#0066CC") +
+  geom_vline(xintercept = 2018, linetype = "dotted") +
+  labs(
+    title = "Tendencia Anual (2014-2024)",
+    y = "PM2.5 Promedio Anual (µg/m³)",
+    x = "Año"
+  ) +
+  theme_bw()
+```
+

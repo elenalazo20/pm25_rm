@@ -204,7 +204,7 @@ limites_escala <- range(
 
 paleta_pm25 <- scale_fill_viridis_c(
   name      = "PM\u2082.\u2085 promedio (µg/m³)",
-  option    = "plasma",
+  option    = "magma",
   direction = -1,   # más oscuro = más concentración
   limits    = limites_escala
 )
