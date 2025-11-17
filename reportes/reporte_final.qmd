@@ -4,20 +4,25 @@ subtitle: "Región Metropolitana de Santiago"
 author: "Elena Lazo"
 date: last-modified
 
-toc: true             
-number-sections: true   
+toc: false
+number-sections: true
 
 format:
   lumo-html:
-    logo: "UC_Chile.png"                            
-    github-repo: "https://github.com/elenalazo20/pm25_rm"  
+    logo: "UC_Chile.png"
+    github-repo: "https://github.com/elenalazo20/pm25_rm"
     primary-color: "#69b3a2"
     self-contained: true
-    is-particlejs-enabled: false
+    is-particlejs-enabled: true
     bg-image: ""
     css: "style_ppda.css"
-    include-after-body: footer.html                     
+    include-after-body: footer.html
+    page-layout: article
+
+sidebar:
+  title: "PPDA – RM"
 ---
+
 
 ```{r}
 #| label: setup
@@ -93,9 +98,9 @@ Los objetos resultantes (`datos_anuales`, `datos_superacion`, `datos_cambio`) se
 
 En esta sección se presentan los principales resultados descriptivos del análisis:
 
-1. **Tabla 1 – Cambios en el promedio de $\text{PM}_{2.5}$ por estación**, comparando los periodos Pre y Post PPDA, junto con sus intervalos de confianza (objeto `datos_cambio`).  
-2. **Gráfico 1 – Contexto espacial:** mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de $\text{PM}_{2.5}$.  
-3. **Gráfico 2 – Tendencia anual de $\text{PM}_{2.5}$ (2014–2024)** por estación, contrastando las series con las recomendaciones de la OMS y la norma chilena (objeto `datos_anuales`).  
+1. **Tabla 1 - Cambios en el promedio de $\text{PM}_{2.5}$ por estación**, comparando los periodos Pre y Post PPDA, junto con sus intervalos de confianza (objeto `datos_cambio`).  
+2. **Gráfico 1 - Contexto espacial:** mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de $\text{PM}_{2.5}$.  
+3. **Gráfico 2 - Tendencia anual de $\text{PM}_{2.5}$ (2014–2024)** por estación, contrastando las series con las recomendaciones de la OMS y la norma chilena (objeto `datos_anuales`).  
 4. **Gráfico 3 – Frecuencia de días críticos en invierno**, mostrando el porcentaje de días con $\text{PM}_{2.5}$ ≥ 50 µg/m³ antes y después del PPDA (objeto `datos_superacion`).
 
 A continuación se dejan los espacios para insertar la tabla y las figuras.
@@ -149,15 +154,17 @@ tabla1_datos %>%
 
 **Pregunta:** ¿Cómo se distribuye espacialmente la contaminación promedio por $\text{PM}_{2.5}$ en las comunas monitoreadas de la Región Metropolitana, y cómo se compara esta distribución entre el período Pre-PPDA (2014-2017) y Post-PPDA (2018-2024)?**
 
-**Hipótesis Descriptiva:** Se espera que las comunas del sector poniente y centro de Santiago (ej. Pudahuel, Cerro Navia, Santiago) presenten concentraciones promedio de $\text{PM}_{2.5}$ más altas que las comunas del sector oriente (ej. Las Condes), y se espera que esta diferencia se mantenga en ambos períodos.**
+**Hipótesis Descriptiva:** Se espera que las comunas del sector poniente y centro de Santiago (por ejemplo Pudahuel, Cerro Navia, Santiago) presenten concentraciones promedio de $\text{PM}_{2.5}$ más altas que las comunas del sector oriente (por ejemplo Las Condes), y se espera que esta diferencia se mantenga en ambos períodos.
 
 ```{r}
 #| label: fig-mapa-pre-post
-#| fig-cap: "Gráfico 1. Mapa de PM₂.₅ promedio Pre-PPDA (2014–2017) y Post-PPDA (2018–2024) por comuna."
+#| fig-cap: "Mapa de PM₂.₅ promedio Pre-PPDA (2014–2017) y Post-PPDA (2018–2024) por comuna."
 #| warning: false
 #| message: false
-#| fig-width: 10
-#| fig-height: 5
+#| fig-width: 14
+#| fig-height: 9
+#| fig-align: "center"
+#| out-width: "100%"
 
 library(chilemapas)
 library(sf)
@@ -237,7 +244,7 @@ mapa_pre_gg + mapa_post_gg + patchwork::plot_layout(guides = "collect")
 
 ```{r}
 #| label: fig-tendencia-facet
-#| fig-cap: "Gráfico 2. Evolución anual de PM₂.₅ por estación (2014–2024), comparada con la Norma Chilena (20 µg/m³) y la guía OMS (5 µg/m³)."
+#| fig-cap: "Evolución anual de PM₂.₅ por estación (2014–2024), comparada con la Norma Chilena (20 µg/m³) y la guía OMS (5 µg/m³)."
 #| warning: false
 #| message: false
 #| fig-width: 10
@@ -278,7 +285,7 @@ datos_anuales |>
 
 ```{r grafico3-superacion}
 #| label: fig-superacion
-#| fig-cap: "Gráfico 3. Frecuencia de días de invierno con PM₂.₅ ≥ 50 µg/m³ antes y después del PPDA."
+#| fig-cap: "Frecuencia de días de invierno con PM₂.₅ ≥ 50 µg/m³ antes y después del PPDA."
 #| fig-height: 7
 #| fig-width: 9
 #| warning: false
