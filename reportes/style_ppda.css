@@ -4,3 +4,7 @@ h1, .h1, h2, .h2, h3, .h3 {
 }
 
 /* Puedes ajustar el valor: 48px, 64px, etc. si lo ves muy grande */
+
+.quarto-figure > figure > img {
+  max-width: 120%;  /* permite que out-width > 100% funcione */
+}

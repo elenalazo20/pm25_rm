@@ -23,7 +23,6 @@ sidebar:
   title: "PPDA – RM"
 ---
 
-
 ```{r}
 #| label: setup
 #| echo: false
@@ -36,6 +35,17 @@ library(mapview)
 library (leafsync)
 library(sf)
 library(patchwork)
+
+library(chilemapas)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+library(dplyr)
+library(ggplot2)
+
+library(grid)
 
 # Fijar raíz del proyecto y cargar datos procesados
 source(here::here("R", "01_configuracion.R"))
@@ -51,7 +61,7 @@ El PCE busca compensar las **emisiones totales anuales, directas e indirectas**,
 
 En este contexto, el informe define dos periodos de análisis:
 
-- **Pre-PPDA (2014–2017):** años previos a la publicación del D.S. 31/2016 y a la implementación efectiva de las medidas estructurales del plan, incluyendo el PCE.  
+- **Pre-PPDA (2014–2017):** años previos a la publicación del D.S. 31 y a la implementación efectiva de las medidas estructurales del plan, incluyendo el PCE.  
 - **Post-PPDA (2018–2024):** periodo posterior a la publicación del decreto, donde se espera observar los primeros efectos agregados de la implementación del PPDA sobre los niveles de $\text{PM}_{2.5}$.
 
 El análisis se basa en datos horarios de $\text{PM}_{2.5}$ de la red oficial de monitoreo, descargados mediante el paquete `AtmChile`, y se centra en un conjunto de estaciones urbanas representativas de la región. El foco del informe es mostrar, de forma clara y reproducible, cómo han evolucionado las concentraciones de $\text{PM}_{2.5}$ tras la implementación del PPDA, utilizando un flujo de trabajo reproducible en R y Quarto.
@@ -98,79 +108,23 @@ Los objetos resultantes (`datos_anuales`, `datos_superacion`, `datos_cambio`) se
 
 En esta sección se presentan los principales resultados descriptivos del análisis:
 
-1. **Tabla 1 - Cambios en el promedio de $\text{PM}_{2.5}$ por estación**, comparando los periodos Pre y Post PPDA, junto con sus intervalos de confianza (objeto `datos_cambio`).  
-2. **Gráfico 1 - Contexto espacial:** mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de $\text{PM}_{2.5}$.  
-3. **Gráfico 2 - Tendencia anual de $\text{PM}_{2.5}$ (2014–2024)** por estación, contrastando las series con las recomendaciones de la OMS y la norma chilena (objeto `datos_anuales`).  
-4. **Gráfico 3 – Frecuencia de días críticos en invierno**, mostrando el porcentaje de días con $\text{PM}_{2.5}$ ≥ 50 µg/m³ antes y después del PPDA (objeto `datos_superacion`).
+### Contexto espacial
 
-A continuación se dejan los espacios para insertar la tabla y las figuras.
+**Mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de $\text{PM}_{2.5}$.** 
 
-### Promedio de $\text{PM}_{2.5}$ Pre/Post PPDA por estación
-```{r}
-#| label: tbl-resumen-gt
-#| tbl-cap: "Concentraciones promedio de PM2.5 y cambio neto por estación."
-
-# Preparamos los datos de la tabla (usando datos_cambio)
-tabla1_datos <- datos_cambio %>%
-  select(site, mean_Pre, mean_Post, reduccion, ymin_Pre, ymax_Pre, ymin_Post, ymax_Post) %>%
-  mutate(across(where(is.numeric), ~ round(., 1)))
-
-tabla1_datos %>%
-  gt() %>%
-  tab_header(
-    title = md("**Evolución de la Concentración Anual de PM2.5 en la RM**"),
-    subtitle = md("Comparación de promedios anuales antes (2014-2017) y después (2018-Actual) del PPDA.")
-  ) %>%
-  cols_label(
-    site = "Estación",
-    mean_Pre = "Promedio Pre-PPDA",
-    mean_Post = "Promedio Post-PPDA",
-    reduccion = "Reducción Neta",
-    ymin_Pre = "CI Inf. Pre",
-    ymax_Pre = "CI Sup. Pre",
-    ymin_Post = "CI Inf. Post",
-    ymax_Post = "CI Sup. Post"
-  ) %>%
-  data_color(
-    columns = reduccion,
-    palette = c("#F8766D", "white", "#00BFC4"), # Rojo (empeora) -> Blanco -> Azul (mejora)
-    domain = c(min(tabla1_datos$reduccion, na.rm=TRUE), 0, max(tabla1_datos$reduccion, na.rm=TRUE))
-  ) %>%
-  tab_spanner( # Agrupamos los Intervalos de Confianza (CI)
-    label = "Intervalo de Confianza (95%) - Pre PPDA",
-    columns = c(ymin_Pre, ymax_Pre)
-  ) %>%
-  tab_spanner(
-    label = "Intervalo de Confianza (95%) - Post PPDA",
-    columns = c(ymin_Post, ymax_Post)
-  ) %>%
-  fmt_number(columns = where(is.numeric), decimals = 1) %>%
-  tab_source_note(
-    source_note = "Fuente: Datos SINCA vía AtmChile. LC: Las Condes, EB: El Bosque, PU: Pudahuel, QU: Quilicura, LF: La Florida, PA: Puente Alto, CEI: Cerrillos, TALI: Talagante, CN: Cerro Navia, IN: Independencia, CEII: Cerrillos 1."
-  )
-```
-
-### Contexto espacial: mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de $\text{PM}_{2.5}$. 
-
-**Pregunta:** ¿Cómo se distribuye espacialmente la contaminación promedio por $\text{PM}_{2.5}$ en las comunas monitoreadas de la Región Metropolitana, y cómo se compara esta distribución entre el período Pre-PPDA (2014-2017) y Post-PPDA (2018-2024)?**
+**Pregunta:** ¿Cómo se distribuye espacialmente la contaminación promedio por $\text{PM}_{2.5}$ en las comunas monitoreadas de la Región Metropolitana, y cómo se compara esta distribución entre el período Pre-PPDA D.S. 31 (2014-2017) y Post-PPDA D.S. 31 (2018-2024)?
 
 **Hipótesis Descriptiva:** Se espera que las comunas del sector poniente y centro de Santiago (por ejemplo Pudahuel, Cerro Navia, Santiago) presenten concentraciones promedio de $\text{PM}_{2.5}$ más altas que las comunas del sector oriente (por ejemplo Las Condes), y se espera que esta diferencia se mantenga en ambos períodos.
 
 ```{r}
 #| label: fig-mapa-pre-post
-#| fig-cap: "Mapa de PM₂.₅ promedio Pre-PPDA (2014–2017) y Post-PPDA (2018–2024) por comuna."
+#| fig-cap: "Mapa de PM₂.₅ promedio Pre-PPDA, D.S. 31 (2014-2017) y Post-PPDA D.S. 31 (2018-2024) por comuna."
 #| warning: false
 #| message: false
-#| fig-width: 14
-#| fig-height: 9
+#| fig-width: 12
+#| fig-height: 5
 #| fig-align: "center"
-#| out-width: "100%"
-
-library(chilemapas)
-library(sf)
-library(dplyr)
-library(ggplot2)
-library(patchwork)
+#| out-width: "110%"
 
 # 1. Mapa de comunas de la RM (forzamos sf)
 mapa_comunas_rm <- chilemapas::mapa_comunas |>
@@ -211,79 +165,177 @@ limites_escala <- range(
 )
 
 paleta_pm25 <- scale_fill_viridis_c(
-  name      = "PM\u2082.\u2085 promedio (µg/m³)",
+  name      = expression(PM[2.5]~" promedio (µg/m"^3*")"),
   option    = "magma",
-  direction = -1,   # más oscuro = más concentración
-  limits    = limites_escala
+  direction = -1,          # más oscuro = más concentración
+  limits    = limites_escala,
+  na.value  = "grey85",     # gris clarito 
+  guide = guide_colorbar(
+    direction      = "horizontal",      
+    title.position = "bottom",
+    title.hjust = 0.5, # lo ajusta justo en medio
+    barwidth       = unit(8, "cm"),     # más ancho
+    barheight      = unit(0.6, "cm")    # más alto
+  )
 )
 
-# 6. Mapas Pre y Post
+# 6. Tema común para los mapas
+tema_mapa <- theme_void() +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face  = "bold",
+      size  = 14
+    ),
+    legend.position  = "bottom",
+    legend.direction = "horizontal",
+    legend.title     = element_text(size = 11),
+    legend.text      = element_text(size = 9),
+    panel.background = element_rect(fill = "grey98", colour = NA),
+    plot.margin      = margin(0, 0, 0, 0)   # sin espacio extra
+  )
+
+# 7. Mapas Pre y Post
 mapa_pre_gg <- ggplot(mapa_comunas_rm_datos) +
-  geom_sf(aes(fill = mean_Pre), colour = "grey40", size = 0.1) +
+  geom_sf(aes(fill = mean_Pre),
+          colour = "white", size = 0.2) +     # bordes claros
   paleta_pm25 +
-  labs(title = "Pre-PPDA (2014–2017)") +
-  theme_void()
+  labs(title = "Pre-PPDA, D.S. 31 (2014–2017)") +
+  tema_mapa
 
 mapa_post_gg <- ggplot(mapa_comunas_rm_datos) +
-  geom_sf(aes(fill = mean_Post), colour = "grey40", size = 0.1) +
+  geom_sf(aes(fill = mean_Post),
+          colour = "white", size = 0.2) +
   paleta_pm25 +
-  labs(title = "Post-PPDA (2018–2024)") +
-  theme_void()
+  labs(title = "Post-PPDA, D.S. 31  (2018–2024)") +
+  tema_mapa
 
-# 7. Composición final: Pre izquierda, Post derecha
-mapa_pre_gg + mapa_post_gg + patchwork::plot_layout(guides = "collect")
+# 8. Composición final: Pre izquierda, Post derecha
+mapa_pre_post <- mapa_pre_gg + mapa_post_gg +
+  patchwork::plot_layout(guides = "collect") &
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal")
 
+mapa_pre_post
 ```
 
 
-### Tendencia anual de $\text{PM}_{2.5}$ (2014–2024) por estación, contrastando las series con las recomendaciones de la OMS y la norma chilena.  
+### Tendencia anual de $\text{PM}_{2.5}$ (2014-2024) por estación
+
+**Contrastando las series con las recomendaciones de la OMS y la norma chilena** 
 
 **Pregunta:** ¿Cuál ha sido la tendencia del promedio anual de PM₂.₅ en cada estación antes y después de 2017, y qué tan lejos estamos de las metas de la OMS (5 µg/m³) y la Norma Chilena (20 µg/m³)?
 
 **Hipótesis Descriptiva:** Se espera ver una tendencia general a la baja en la mayoría de las estaciones después de la implementación del PPDA (2018), aunque la mayoría de las estaciones permanecerán por encima de la directriz de la OMS.
-
 ```{r}
 #| label: fig-tendencia-facet
 #| fig-cap: "Evolución anual de PM₂.₅ por estación (2014–2024), comparada con la Norma Chilena (20 µg/m³) y la guía OMS (5 µg/m³)."
 #| warning: false
 #| message: false
-#| fig-width: 10
+#| fig-width: 8
 #| fig-height: 8
 
-# Año de referencia del PPDA
 ppda_year <- 2018
 
-datos_anuales |>
+# 0) Crear datos_anuales_plot con nombres bonitos de estaciones
+datos_anuales_plot <- datos_anuales |>
+  dplyr::mutate(
+    site = dplyr::recode(
+      site,
+      "LC"   = "Las Condes",
+      "EB"   = "El Bosque",
+      "PU"   = "Pudahuel",
+      "QU"   = "Quilicura",
+      "LF"   = "La Florida",
+      "PA"   = "Puente Alto",
+      "CEI"  = "Cerro Navia I",
+      "CEII" = "Cerro Navia II",
+      "CN"   = "Cerrillos Norte",
+      "IN"   = "Independencia",
+      "TALI" = "Talagante"
+    )
+  )
+
+# ordenar estaciones por promedio pre-PPDA
+orden_est <- datos_anuales_plot |>
+  dplyr::filter(year < ppda_year) |>
+  dplyr::group_by(site) |>
+  dplyr::summarise(pm25_pre = mean(pm25_anual, na.rm = TRUE), .groups = "drop") |>
+  dplyr::arrange(dplyr::desc(pm25_pre)) |>
+  dplyr::pull(site)
+
+datos_anuales_plot <- datos_anuales_plot |>
+  dplyr::mutate(site = factor(site, levels = orden_est))
+
+# normas para la leyenda
+normas <- tibble::tibble(
+  valor = c(20, 5),
+  norma = c(
+    "Norma Chilena (20 µg/m³)",
+    "Guía OMS (5 µg/m³)"
+  )
+)
+
+datos_anuales_plot |>
   ggplot(aes(x = year, y = pm25_anual)) +
-  # Serie temporal
-  geom_line(color = "#3399FF", linewidth = 1) +
-  geom_point(color = "#004080", size = 2) +
-  # Normas de referencia
-  geom_hline(yintercept = 20, linetype = "solid",  color = "#CC3300", linewidth = 0.8) +
-  geom_hline(yintercept = 5,  linetype = "dashed", color = "#0066CC", linewidth = 0.6) +
-  # Implementación PPDA
-  geom_vline(xintercept = ppda_year, linetype = "dotted", color = "black", linewidth = 0.6) +
-  # Facetas por estación
-  facet_wrap(~ site, ncol = 3) +
-  # Etiquetas
-  labs(
-    x = "Año",
-    y = "PM₂.₅ promedio anual (µg/m³)"
+  geom_line(color = "#1f77b4", linewidth = 0.9) +
+  geom_point(color = "#1f77b4", size = 1.8) +
+  geom_hline(
+    data = normas,
+    aes(yintercept = valor, color = norma, linetype = norma),
+    linewidth = 0.7
   ) +
-  theme_bw() +
+  geom_vline(
+    xintercept = ppda_year,
+    linetype = "dotted",
+    color = "grey30",
+    linewidth = 0.6
+  ) +
+  facet_wrap(~ site, ncol = 3) +
+  labs(
+    x        = "Año",
+    y        = expression(PM[2.5]~" promedio (µg/m"^3*")"),
+    color    = "Referencias",
+    linetype = "Referencias"
+  ) +
+  scale_color_manual(
+    values = c(
+      "Norma Chilena (20 µg/m³)" = "#CC3300",
+      "Guía OMS (5 µg/m³)"       = "#0066CC"
+    )
+  ) +
+  scale_linetype_manual(
+    values = c(
+      "Norma Chilena (20 µg/m³)" = "solid",
+      "Guía OMS (5 µg/m³)"       = "dashed"
+    )
+  ) +
+  scale_y_continuous(limits = c(0, 35), expand = expansion(mult = c(0, 0.05))) +
+  scale_x_continuous(breaks = seq(2014, 2024, by = 2)) +
+  theme_minimal(base_size = 11) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)
+    panel.spacing.x   = unit(0.9, "lines"),  # espacio horizontal entre facetas
+    panel.spacing.y   = unit(0.9, "lines"),  # espacio vertical entre facetas
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor   = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey90"),
+    strip.background   = element_rect(fill = "grey95", colour = NA),
+    strip.text         = element_text(face = "bold"),
+    axis.text.x        = element_text(angle = 45, hjust = 1),
+    legend.position    = "bottom",
+    legend.title       = element_text(face = "bold")
   )
 ```
 
-### Frecuencia de días críticos en invierno**, mostrando el porcentaje de días con $\text{PM}_{2.5}$ ≥ 50 µg/m³ antes y después del PPDA.
+### Frecuencia de días críticos en invierno
+
+**Mostrando el porcentaje de días con $\text{PM}_{2.5}$ ≥ 50 µg/m³ antes y después del PPDA.**
 
 **Pregunta:** ¿Ha disminuido la frecuencia de los días que superan el nivel de la Norma Diaria (50 µg/m³) durante el período más crítico (Invierno) en los años posteriores a 2017?
 
 **Hipótesis Descriptiva:** Se espera que el porcentaje de días de invierno con alta contaminación (PM₂.₅ > 50 µg/m³) haya disminuido significativamente en el período Post-PPDA (2018-2024), demostrando la efectividad del plan.
 
-
-```{r grafico3-superacion}
+```{r}
 #| label: fig-superacion
 #| fig-cap: "Frecuencia de días de invierno con PM₂.₅ ≥ 50 µg/m³ antes y después del PPDA."
 #| fig-height: 7
@@ -293,13 +345,29 @@ datos_anuales |>
 
 library(dplyr)
 library(ggplot2)
+library(plotly)
 
-# 1) Quedarnos solo con estaciones que tienen porcentaje en el periodo Post
+# Vector con nombres de estaciones  (mismo que usaste en las facetas)
+site_labels <- c(
+  "EB"   = "El Bosque",
+  "CN"   = "Cerrillos Norte",
+  "PA"   = "Pudahuel",
+  "CEI"  = "Cerro Navia I",
+  "TALI" = "Talagante",
+  "IN"   = "Independencia",
+  "QU"   = "Quilicura",
+  "LF"   = "La Florida",
+  "CEII" = "Cerro Navia II",
+  "PU"   = "Puente Alto",
+  "LC"   = "Las Condes"
+)
+
+# 1) Estaciones que tienen datos en periodo Post
 estaciones_validas <- datos_superacion %>%
   group_by(site) %>%
   summarise(
     tiene_post = any(
-      periodo_ppda == "2. Post-PPDA (2018-Actual)" &
+      periodo_ppda == "2. Post-PPDA, D.S. 31 (2018-Actual)" &
         !is.na(porcentaje_sobre_50)
     ),
     .groups = "drop"
@@ -310,24 +378,38 @@ estaciones_validas <- datos_superacion %>%
 datos_superacion_filtrado <- datos_superacion %>%
   filter(site %in% estaciones_validas)
 
-# 2) Ordenar las estaciones según el porcentaje Post-PPDA
+# 2) Ordenar por porcentaje Post-PPDA (de menor a mayor)
 estaciones_ordenadas_sup <- datos_superacion_filtrado %>%
-  filter(periodo_ppda == "2. Post-PPDA (2018-Actual)") %>%
+  filter(periodo_ppda == "2. Post-PPDA, D.S. 31 (2018-Actual)") %>%
   arrange(porcentaje_sobre_50) %>%
   pull(site)
 
-# 3) Gráfico de barras
-datos_superacion_filtrado %>%
-  mutate(site = factor(site, levels = estaciones_ordenadas_sup)) %>%
-  ggplot(aes(x = site, y = porcentaje_sobre_50, fill = periodo_ppda)) +
+niveles_estaciones <- site_labels[estaciones_ordenadas_sup]
+
+# 3) Gráfico con barras horizontales
+p_sup <- datos_superacion_filtrado %>%
+  mutate(
+    estacion = factor(site_labels[site], levels = niveles_estaciones)
+  ) %>%
+  ggplot(aes(
+    y    = estacion,                  
+    x    = porcentaje_sobre_50,       
+    fill = periodo_ppda,
+    text = paste0(
+      "Estación: ", estacion, "<br>",
+      "Período: ", periodo_ppda, "<br>",
+      "Días ≥ 50 µg/m³ (%): ",
+      round(porcentaje_sobre_50, 1)
+    )
+  )) +
   geom_bar(
     stat = "identity",
-    position = position_dodge(width = 0.8),
-    width = 0.7
+    position = position_dodge(width = 0.7),
+    width = 0.6
   ) +
   labs(
-    x   = "Estación de monitoreo",
-    y   = "Días de invierno con PM₂.₅ ≥ 50 µg/m³ (%)",
+    x   = "Días de invierno con PM₂.₅ ≥ 50 µg/m³ (%)",
+    y   = "Estación de monitoreo",
     fill = "Periodo"
   ) +
   scale_fill_manual(
@@ -338,9 +420,14 @@ datos_superacion_filtrado %>%
   ) +
   theme_minimal() +
   theme(
-    axis.text.x     = element_text(angle = 45, hjust = 1, size = 8),
+    axis.text.y     = element_text(size = 9),
+    axis.text.x     = element_text(size = 8),
     legend.position = "bottom"
   )
+
+# 4) Versión interactiva
+ggplotly(p_sup, tooltip = "text")
+
 
 ```
 
