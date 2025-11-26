@@ -312,7 +312,7 @@ normas <- tibble::tibble(
   valor = c(20, 5),
   norma = c(
     "Norma Chilena (20 µg/m³)",
-    "Guía OMS (5 µg/m³)"
+    "Directrices de la OMS(5 µg/m³)"
   )
 )
 
@@ -341,13 +341,13 @@ datos_anuales_plot |>
   scale_color_manual(
     values = c(
       "Norma Chilena (20 µg/m³)" = "#CC3300",
-      "Guía OMS (5 µg/m³)"       = "#0066CC"
+      "Directrices de la OMS (5 µg/m³)" = "#0066CC"
     )
   ) +
   scale_linetype_manual(
     values = c(
       "Norma Chilena (20 µg/m³)" = "solid",
-      "Guía OMS (5 µg/m³)"       = "dashed"
+      "Directrices de la OMS (5 µg/m³)" = "dashed"
     )
   ) +
   scale_y_continuous(limits = c(0, 35), expand = expansion(mult = c(0, 0.05))) +
@@ -375,39 +375,23 @@ datos_anuales_plot |>
 
 **Hipótesis Descriptiva:** Se espera que el porcentaje de días de invierno con alta contaminación (PM₂.₅ > 50 µg/m³) haya disminuido significativamente en el período Post-PPDA (2018-2024), demostrando la efectividad del plan.
 
-```{r}
+```{r grafico3-superacion-final}
 #| label: fig-superacion
-#| fig-cap: "Frecuencia de días de invierno con PM₂.₅ ≥ 50 µg/m³ antes y después del PPDA."
+#| fig-cap: "Gráfico 3. Frecuencia de Días sobre la Norma Diaria (50 µg/m³) en Invierno (May-Ago)."
 #| fig-height: 7
-#| fig-width: 9
+#| fig-width: 8
 #| warning: false
 #| message: false
 
 library(dplyr)
 library(ggplot2)
-library(plotly)
 
-# Vector con nombres de estaciones  (mismo que usaste en las facetas)
-site_labels <- c(
-  "EB"   = "El Bosque",
-  "CN"   = "Cerrillos Norte",
-  "PA"   = "Pudahuel",
-  "CEI"  = "Cerro Navia I",
-  "TALI" = "Talagante",
-  "IN"   = "Independencia",
-  "QU"   = "Quilicura",
-  "LF"   = "La Florida",
-  "CEII" = "Cerro Navia II",
-  "PU"   = "Puente Alto",
-  "LC"   = "Las Condes"
-)
-
-# 1) Estaciones que tienen datos en periodo Post
+# 1) Quedarnos solo con estaciones que tienen porcentaje en el periodo Post
 estaciones_validas <- datos_superacion %>%
   group_by(site) %>%
   summarise(
     tiene_post = any(
-      periodo_ppda == "2. Post-PPDA, D.S. 31 (2018-Actual)" &
+      periodo_ppda == "2. Post-PPDA, D.S. 31 (2018-2024)" &
         !is.na(porcentaje_sobre_50)
     ),
     .groups = "drop"
@@ -418,57 +402,42 @@ estaciones_validas <- datos_superacion %>%
 datos_superacion_filtrado <- datos_superacion %>%
   filter(site %in% estaciones_validas)
 
-# 2) Ordenar por porcentaje Post-PPDA (de menor a mayor)
+# 2) Ordenar las estaciones según el porcentaje Post-PPDA
 estaciones_ordenadas_sup <- datos_superacion_filtrado %>%
-  filter(periodo_ppda == "2. Post-PPDA, D.S. 31 (2018-Actual)") %>%
+  filter(periodo_ppda == "2. Post-PPDA, D.S. 31 (2018-2024)") %>%
   arrange(porcentaje_sobre_50) %>%
   pull(site)
 
-niveles_estaciones <- site_labels[estaciones_ordenadas_sup]
-
-# 3) Gráfico con barras horizontales
-p_sup <- datos_superacion_filtrado %>%
-  mutate(
-    estacion = factor(site_labels[site], levels = niveles_estaciones)
-  ) %>%
-  ggplot(aes(
-    y    = estacion,                  
-    x    = porcentaje_sobre_50,       
-    fill = periodo_ppda,
-    text = paste0(
-      "Estación: ", estacion, "<br>",
-      "Período: ", periodo_ppda, "<br>",
-      "Días ≥ 50 µg/m³ (%): ",
-      round(porcentaje_sobre_50, 1)
-    )
-  )) +
-  geom_bar(
+# 3) Gráfico de barras
+datos_superacion_filtrado %>%
+  mutate(site = factor(site, levels = estaciones_ordenadas_sup)) %>%
+  ggplot(aes(x = site, y = porcentaje_sobre_50, fill = periodo_ppda)) +
+  
+  geom_bar(    # Barras
     stat = "identity",
-    position = position_dodge(width = 0.7),
-    width = 0.6
+    position = position_dodge(width = 0.8),
+    width = 0.7
   ) +
+  
+  coord_flip() + # Voltea la coordenadas
+  
   labs(
-    x   = "Días de invierno con PM₂.₅ ≥ 50 µg/m³ (%)",
-    y   = "Estación de monitoreo",
+    x    = "Estación de monitoreo",
+    y    = expression(paste("Porcentaje de Días de invierno con PM"[2.5]~" ≥ 50 µg/m³ (%)")),
     fill = "Periodo"
   ) +
+
   scale_fill_manual(
     values = c(
-      "1. Pre-PPDA (2014-2017)"    = "#E69F00",
-      "2. Post-PPDA (2018-Actual)" = "#56B4E9"
+      "1. Pre-PPDA, D.S. 31 (2014-2017)"  = "#E69F00",
+      "2. Post-PPDA, D.S. 31  (2018–2024)" = "#56B4E9"
     )
   ) +
   theme_minimal() +
   theme(
-    axis.text.y     = element_text(size = 9),
-    axis.text.x     = element_text(size = 8),
+    panel.grid.major.y = element_blank(),   # Elimina las líneas de la cuadrícula
     legend.position = "bottom"
   )
-
-# 4) Versión interactiva
-ggplotly(p_sup, tooltip = "text")
-
-
 ```
 
 ## Comentarios finales
