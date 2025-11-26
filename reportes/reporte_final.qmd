@@ -219,7 +219,46 @@ mapa_pre_post <- mapa_pre_gg + mapa_post_gg +
 mapa_pre_post
 ```
 
+```{=html}
+<button type="button"
+        class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#modalMapaPM25">
+  Ver mapa en pantalla completa
+</button>
 
+<div class="modal fade" id="modalMapaPM25" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Mapa – vista ampliada</h5>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body">
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 14
+#| fig-height: 7
+#| out-width: "100%"
+#| fig-cap: ""
+
+mapa_pre_post
+```
+
+```{=html}
+      </div>
+    </div>
+  </div>
+</div>
+```
 
 ### Tendencia anual de $\text{PM}_{2.5}$ (2014-2024) por estación
 
