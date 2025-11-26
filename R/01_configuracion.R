@@ -10,7 +10,7 @@ suppressPackageStartupMessages({
 here::i_am("R/01_configuracion.R")
 #cat("Raíz del proyecto:", here::here(), "\n")
 
-# 2) Crear carpetas base (nombres en español) ------------------------------
+# 2) Crear carpetas base ---------------------------------------------------
 carpetas <- c("datos_crudos",
               "datos_procesados",
               "figuras",
@@ -19,27 +19,25 @@ carpetas <- c("datos_crudos",
 
 fs::dir_create(here::here(carpetas))
 
-# 3) Helper para guardar figuras ------------------------------------------
-# Uso:
-#   guardar_fig(g, "mi_grafico.png")
-#   guardar_fig(g, "reportes/figuras/fig1.pdf", w = 8, h = 5)
+# 3) Función para guardar figuras -----------------------------------------
 guardar_fig <- function(p, file, w = 10, h = 6, dpi = 300) {
 
-  # Si solo se pasa el nombre del archivo, se guarda en "figuras"
-  ruta <- if (fs::path_has_parent(file)) {
-    here::here(file)
+  tiene_carpeta <- fs::path_dir(file) != "." # Verifica si el archivo incluye un direct, sino devuelve un .
+
+  ruta <- if (tiene_carpeta) {
+    here::here(file) # Si tiene carpeta, usa la ruta tal cual, partiendo del inicio del proyecto
   } else {
-    here::here("figuras", file)
+    here::here("figuras", file) # Si NO tiene carpeta, añade a la carpeta figuras al inicio de la ruta
   }
 
-  fs::dir_create(fs::path_dir(ruta))
+  fs::dir_create(fs::path_dir(ruta)) # # Crea la carpeta necesaria (por ejemplo "figuras/") si aún no existe.
 
   ggplot2::ggsave(
     filename = ruta,
-    plot     = p,
-    width    = w,
-    height   = h,
-    dpi      = dpi
+    plot = p,
+    width = w,
+    height = h,
+    dpi = dpi
   )
 
   message("Figura guardada en: ", ruta)
