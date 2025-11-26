@@ -341,13 +341,13 @@ datos_anuales_plot |>
   scale_color_manual(
     values = c(
       "Norma Chilena (20 µg/m³)" = "#CC3300",
-      "Directrices de la OMS (5 µg/m³)" = "#0066CC"
+      "Directrices de la OMS(5 µg/m³)" = "#0066CC"
     )
   ) +
   scale_linetype_manual(
     values = c(
       "Norma Chilena (20 µg/m³)" = "solid",
-      "Directrices de la OMS (5 µg/m³)" = "dashed"
+      "Directrices de la OMS(5 µg/m³)" = "dashed"
     )
   ) +
   scale_y_continuous(limits = c(0, 35), expand = expansion(mult = c(0, 0.05))) +
