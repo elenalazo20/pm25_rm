@@ -375,6 +375,22 @@ datos_anuales_plot |>
 
 **Hipótesis Descriptiva:** Se espera que, en el período Post-PPDA (2018-2024), la magnitud promedio de las concentraciones de PM₂.₅ en invierno sea notablemente menor que en el período Pre-PPDA (2014-2017), y que esta reducción se manifieste en una disminución clara del porcentaje de días con episodios críticos (≥ 50 µg/m) en la mayoría de las estaciones de la Región Metropolitana.
 
+```{r data-dumbbell}
+#| label: data-dumbbell
+#| echo: false
+#| message: false
+#| warning: false
+
+# 1. Preparación de Datos: Seleccionar las medias Pre/Post y ordenar
+datos_dumbbell_magnitud <- datos_cambio %>%
+    select(site, mean_Pre, mean_Post) %>%
+    mutate(
+        site = factor(site, levels = site[order(mean_Pre)]) #site ahora es factor y se ordena la mean de < a > 
+    ) %>%
+    rename(Pre = mean_Pre, Post = mean_Post) # renombrar para mas simplicidad
+
+```
+
 
 
 ## Comentarios finales
