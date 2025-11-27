@@ -384,13 +384,33 @@ datos_anuales_plot |>
 # 1. Preparación de Datos: Seleccionar las medias Pre/Post y ordenar
 datos_dumbbell_magnitud <- datos_cambio %>%
     select(site, mean_Pre, mean_Post) %>%
+    filter (!is.na(mean_Post) & !is.na(mean_Pre)) %>% #elimina las filas incompletas
     mutate(
         site = factor(site, levels = site[order(mean_Pre)]) #site ahora es factor y se ordena la mean de < a > 
     ) %>%
     rename(Pre = mean_Pre, Post = mean_Post) # renombrar para mas simplicidad
-
 ```
 
+```{r grafico3a-magnitud}
+#| label: fig-dumbbell-magnitud
+#| fig-cap: "Gráfico 3A. Comparación de la Concentración Promedio de PM₂.₅ en Invierno (µg/m³) entre los períodos Pre-PPDA, D.S. 31 y Post-PPDA, D.S. 31"
+#| fig-height: 7
+#| fig-width: 9
+
+# 2. Creación del Dumbbell Plot
+ggplot(datos_dumbbell_magnitud, aes(y = site)) +
+  geom_segment(aes(x = Pre, xend = Post, yend = site), # los palitos de las pesas
+               color = "grey", linewidth = 1.5) +
+  geom_point(aes(x = Pre, color = "Pre-PPDA"), size = 4) + # punto pre-ppda
+  geom_point(aes(x = Post, color = "Post-PPDA"), size = 4) + #punto post-ppda
+  scale_color_manual(
+    name = "Período",
+    values = c("Pre-PPDA" = "#E69F00", "Post-PPDA" = "#56B4E9")) +
+    labs(x = expression(PM[2.5]~" Promedio en Invierno ("*mu*g/m^3*")"),
+         y = "Estación de monitoreo") +
+    theme_minimal(base_size = 13) +
+    theme(legend.position = "bottom")
+```
 
 
 ## Comentarios finales
