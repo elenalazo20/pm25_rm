@@ -38,6 +38,7 @@ library(mapview)
 library (leafsync)
 library(patchwork)
 library(grid)
+library(forcats)
 
 # 2) Fijar raíz del proyecto y cargar datos procesados
 source(here::here("R", "01_configuracion.R"))
@@ -382,7 +383,7 @@ datos_dumbbell_magnitud <- datos_cambio %>%
       midpoint_x = mean_Post + (diff_value / 2),    # punto medio del segmento
       diff_label = paste0(
             "Δ: ",
-            if_else(diff_value >= 0, "+", ""), 
+            if_else(diff_value > 0, "+", ""), 
             round(diff_value, 1)),
       site = factor(site, levels = site[order(mean_Pre)]) # site ahora es factor y se ordena la mean de < a > 
     ) %>%
@@ -391,24 +392,80 @@ datos_dumbbell_magnitud <- datos_cambio %>%
 
 ```{r grafico3a-magnitud}
 #| label: fig-dumbbell-magnitud
-#| fig-cap: "Gráfico 3A. Comparación de la Concentración Promedio de PM₂.₅ en Invierno (µg/m³) entre los períodos Pre-PPDA, D.S. 31 y Post-PPDA, D.S. 31"
+#| fig-cap: "Gráfico 3A. Comparación de la concentración promedio de PM₂.₅ en invierno (µg/m³) entre los períodos Pre-PPDA, D.S. 31 y Post-PPDA, D.S. 31."
 #| fig-height: 7
 #| fig-width: 9
 
-# 2. Creación del Dumbbell Plot
-ggplot(datos_dumbbell_magnitud, aes(y = site)) +
-  geom_segment(aes(x = Pre, xend = Post, yend = site), # los palitos de las pesas
-               color = "grey", linewidth = 1.5) +
-  geom_point(aes(x = Pre, color = "Pre-PPDA"), size = 4) + # punto pre-ppda
-  geom_point(aes(x = Post, color = "Post-PPDA"), size = 4) + #punto post-ppda
+datos_plot <- datos_dumbbell_magnitud |> #ordenar estaciones por valor Post (de menor a mayor)
+  mutate(site = fct_reorder(site, Post))
+
+ggplot(datos_plot, aes(y = site)) +
+  
+  geom_segment( # palito gris gordo 
+    aes(x = Pre, xend = Post, yend = site),
+    colour  = "#D3D3D3",
+    linewidth = 6,
+    lineend = "round") +
+  
+  geom_label(
+    aes(x = midpoint_x, label = diff_label), # etiqueta de la diferencia en el centro del segmento
+    fill         = "#D3D3D3",
+    colour       = "#4a4e4d",
+    size         = 3,
+    fontface     = "bold",
+    label.size   = 0,
+    label.padding = unit(0.12, "lines")) +
+  
+  geom_point(aes(x = Pre,  colour = "Pre-PPDA, D.S. 31"),  size = 3.6) +   # puntos de cada período
+  geom_point(aes(x = Post, colour = "Post-PPDA, D.S. 31"), size = 3.6) +
+  
   scale_color_manual(
-    name = "Período",
-    values = c("Pre-PPDA" = "#E69F00", "Post-PPDA" = "#56B4E9")) +
-    labs(x = expression(PM[2.5]~" Promedio en Invierno ("*mu*g/m^3*")"),
-         y = "Estación de monitoreo") +
-    theme_minimal(base_size = 13) +
-    theme(legend.position = "bottom")
-```
+    name   = "Período",
+    values = c("Pre-PPDA, D.S. 31"  = "#00BFC4",   # colores de las bolitas
+               "Post-PPDA, D.S. 31" = "#F8766D")) +
+  
+    scale_x_continuous(
+    breaks  = seq(16, 34, 2),
+    expand  = expansion(mult = c(0.02, 0.08))) +
+  
+  labs(
+    x = expression(PM[2.5]~" promedio en invierno ("*mu*g/m^3*")"), # etiquetas de ejes
+    y = "Estación de monitoreo") +
+  
+  coord_cartesian(clip = "off") +
+
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "grey95", colour = NA), #fondo de la grilla
+    plot.background  = element_rect(fill = "white", colour = NA),  #fondo del plot
+
+    panel.grid.major = element_line(colour = "white", linewidth = 0.2), # linea grilla con el numero
+    panel.grid.minor = element_line(colour = "white", linewidth = 0.2), #linea grilla sin el numero
+
+    axis.title.y     = element_text(margin = margin(r = 8)),     # quitar chirimbolos innecesarios
+    axis.ticks.y     = element_blank(),
+
+    plot.margin = margin(10, 20, 10, 10),     # un poco más de aire entre panel y ejes
+
+    legend.position  = "right",
+    legend.title     = element_text(face = "bold"),
+    text             = element_text(colour = "#4a4e4d")
+  )
+
+
+```  
+  theme_bw() +    #tema del plot
+  theme(
+    axis.text.y = element_text(size = 9, colour = "#4a4e4d"),     # Texto de ejes
+    axis.text.x = element_text(size = 9),
+    panel.grid.major.y = element_blank(), # quitar rejillas
+    panel.grid.minor   = element_blank(),
+    legend.position = "bottom",           # Leyenda limpia abajo
+    legend.title    = element_text(size = 9),
+    legend.text     = element_text(size = 9),
+    plot.margin = margin(10, 20, 10, 10)  # márgenes un poco más generosos
+  )
+
 
 
 ## Comentarios finales
