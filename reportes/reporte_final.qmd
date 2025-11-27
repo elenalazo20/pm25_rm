@@ -29,27 +29,39 @@ sidebar:
 #| message: false
 #| warning: false
 
-# Cargar librerías necesarias para el reporte
-library(gt)
+# 1) Cargar librerías necesarias para el reporte
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(chilemapas)
 library(mapview) 
 library (leafsync)
-library(sf)
 library(patchwork)
-
-library(chilemapas)
-library(sf)
-library(dplyr)
-library(ggplot2)
-library(patchwork)
-
-library(dplyr)
-library(ggplot2)
-
 library(grid)
 
-# Fijar raíz del proyecto y cargar datos procesados
+# 2) Fijar raíz del proyecto y cargar datos procesados
 source(here::here("R", "01_configuracion.R"))
 load(here::here("datos_procesados", "analisis_pm25_ppda.RData"))
+
+# 3) Definición del diccionario de nombres completos de las estaciones
+site_labels <- c(
+    "LC" = "Las Condes", "EB" = "El Bosque", "PU" = "Pudahuel", 
+    "QU" = "Quilicura", "LF" = "La Florida", "PA" = "Puente Alto", 
+    "CEI" = "Cerrillos", "TALI" = "Talagante", "CN" = "Cerro Navia", 
+    "IN" = "Independencia", "CEII" = "Cerrillos 1")
+
+# 4)Aplicar la recodificacion a los objetos creados
+# Gráfico 2 (Facet Plot)
+datos_anuales <- datos_anuales %>%
+  dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
+
+# Gráfico 3A (Magnitud-concentración) 
+datos_cambio <- datos_cambio %>%
+  dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
+
+# Gráfico 3B (Frecuencia)
+datos_superacion_filtrado <- datos_superacion_filtrado %>%
+  dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
 ```
 ## Introducción
 
