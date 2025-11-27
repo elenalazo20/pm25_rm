@@ -376,9 +376,15 @@ datos_anuales %>%
 # 1. Preparación de Datos: Seleccionar las medias Pre/Post y ordenar
 datos_dumbbell_magnitud <- datos_cambio %>%
     select(site, mean_Pre, mean_Post) %>%
-    filter (!is.na(mean_Post) & !is.na(mean_Pre)) %>% #elimina las filas incompletas
+    filter (!is.na(mean_Post) & !is.na(mean_Pre)) %>% # elimina las filas incompletas
     mutate(
-        site = factor(site, levels = site[order(mean_Pre)]) #site ahora es factor y se ordena la mean de < a > 
+      diff_value = mean_Pre - mean_Post,    # la diferencia
+      midpoint_x = mean_Post + (diff_value / 2),    # punto medio del segmento
+      diff_label = paste0(
+            "Δ: ",
+            if_else(diff_value >= 0, "+", ""), 
+            round(diff_value, 1)),
+      site = factor(site, levels = site[order(mean_Pre)]) # site ahora es factor y se ordena la mean de < a > 
     ) %>%
     rename(Pre = mean_Pre, Post = mean_Post) # renombrar para mas simplicidad
 ```
