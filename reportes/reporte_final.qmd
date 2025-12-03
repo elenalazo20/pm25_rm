@@ -32,6 +32,7 @@ sidebar:
 # 1) Cargar librerías necesarias para el reporte
 library(dplyr)
 library(ggplot2)
+library(gt)
 library(sf)
 library(chilemapas)
 library(mapview) 
@@ -61,8 +62,8 @@ datos_cambio <- datos_cambio %>%
   dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
 
 # Gráfico 3B (Frecuencia)
-datos_superacion_filtrado <- datos_superacion_filtrado %>%
-  dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
+#datos_superacion_filtrado <- datos_superacion_filtrado %>%
+#  dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
 ```
 ## Introducción
 
@@ -116,6 +117,55 @@ Los objetos resultantes (`datos_anuales`, `datos_superacion`, `datos_cambio`) se
 **`datos_procesados/analisis_pm25_ppda.RData`** y son los que se cargan al inicio de este reporte.
 
 ***
+
+
+A continuación se dejan los espacios para insertar la tabla y las figuras.
+
+### Promedio de $\text{PM}_{2.5}$ Pre/Post PPDA por estación
+```{r}
+#| label: tbl-resumen-gt
+#| tbl-cap: "Concentraciones promedio de PM2.5 y cambio neto por estación."
+
+# Preparamos los datos de la tabla (usando datos_cambio)
+tabla1_datos <- datos_cambio %>%
+  select(site, mean_Pre, mean_Post, reduccion, ymin_Pre, ymax_Pre, ymin_Post, ymax_Post) %>%
+  mutate(across(where(is.numeric), ~ round(., 1)))
+
+tabla1_datos %>%
+  gt() %>%
+  tab_header(
+    title = md("**Evolución de la Concentración Anual de PM2.5 en la RM**"),
+    subtitle = md("Comparación de promedios anuales antes (2014-2017) y después (2018-Actual) del PPDA.")
+  ) %>%
+  cols_label(
+    site = "Estación",
+    mean_Pre = "Promedio Pre-PPDA",
+    mean_Post = "Promedio Post-PPDA",
+    reduccion = "Reducción Neta",
+    ymin_Pre = "CI Inf. Pre",
+    ymax_Pre = "CI Sup. Pre",
+    ymin_Post = "CI Inf. Post",
+    ymax_Post = "CI Sup. Post"
+  ) %>%
+  data_color(
+    columns = reduccion,
+    palette = c("#F8766D", "white", "#00BFC4"), # Rojo (empeora) -> Blanco -> Azul (mejora)
+    domain = c(min(tabla1_datos$reduccion, na.rm=TRUE), 0, max(tabla1_datos$reduccion, na.rm=TRUE))
+  ) %>%
+  tab_spanner( # Agrupamos los Intervalos de Confianza (CI)
+    label = "Intervalo de Confianza (95%) - Pre PPDA",
+    columns = c(ymin_Pre, ymax_Pre)
+  ) %>%
+  tab_spanner(
+    label = "Intervalo de Confianza (95%) - Post PPDA",
+    columns = c(ymin_Post, ymax_Post)
+  ) %>%
+  fmt_number(columns = where(is.numeric), decimals = 1) %>%
+  tab_source_note(
+    source_note = "Fuente: Datos SINCA vía AtmChile. LC: Las Condes, EB: El Bosque, PU: Pudahuel, QU: Quilicura, LF: La Florida, PA: Puente Alto, CEI: Cerrillos, TALI: Talagante, CN: Cerro Navia, IN: Independencia, CEII: Cerrillos 1."
+  )
+```
+
 
 ## Resultados
 
@@ -368,7 +418,7 @@ datos_anuales %>%
 
 **Hipótesis Descriptiva:** Se espera que, en el período Post-PPDA (2018-2024), la magnitud promedio de las concentraciones de PM₂.₅ en invierno sea notablemente menor que en el período Pre-PPDA (2014-2017), y que esta reducción se manifieste en una disminución clara del porcentaje de días con episodios críticos (≥ 50 µg/m) en la mayoría de las estaciones de la Región Metropolitana.
 
-```{r data-dumbbell}
+```{r}
 #| label: data-dumbbell
 #| echo: false
 #| message: false
@@ -383,14 +433,13 @@ datos_dumbbell_magnitud <- datos_cambio %>%
       midpoint_x = mean_Post + (diff_value / 2),    # punto medio del segmento
       diff_label = paste0(
             "Δ: ",
-            if_else(diff_value > 0, "+", ""), 
             round(diff_value, 1)),
       site = factor(site, levels = site[order(mean_Pre)]) # site ahora es factor y se ordena la mean de < a > 
     ) %>%
     rename(Pre = mean_Pre, Post = mean_Post) # renombrar para mas simplicidad
 ```
 
-```{r grafico3a-magnitud}
+```{r}
 #| label: fig-dumbbell-magnitud
 #| fig-cap: "Gráfico 3A. Comparación de la concentración promedio de PM₂.₅ en invierno (µg/m³) entre los períodos Pre-PPDA, D.S. 31 y Post-PPDA, D.S. 31."
 #| fig-height: 7
@@ -454,17 +503,14 @@ ggplot(datos_plot, aes(y = site)) +
 
 
 ```  
-  theme_bw() +    #tema del plot
-  theme(
-    axis.text.y = element_text(size = 9, colour = "#4a4e4d"),     # Texto de ejes
-    axis.text.x = element_text(size = 9),
-    panel.grid.major.y = element_blank(), # quitar rejillas
-    panel.grid.minor   = element_blank(),
-    legend.position = "bottom",           # Leyenda limpia abajo
-    legend.title    = element_text(size = 9),
-    legend.text     = element_text(size = 9),
-    plot.margin = margin(10, 20, 10, 10)  # márgenes un poco más generosos
-  )
+
+```{r}
+
+```
+
+```{r}
+
+```
 
 
 
