@@ -79,6 +79,16 @@ En este contexto, el informe define dos periodos de análisis:
 - **Pre-PPDA (2014–2017):** años previos a la publicación del D.S. 31 y a la implementación efectiva de las medidas estructurales del plan, incluyendo el PCE.  
 - **Post-PPDA (2018–2024):** periodo posterior a la publicación del decreto, donde se espera observar los primeros efectos agregados de la implementación del PPDA sobre los niveles de PM₂.₅.
 
+### Público Objetivo
+
+El público principal al que va dirigido este informe son los **organismos rectores y técnicos** responsables de la calidad del aire y la salud pública en Chile. El objetivo es proporcionar evidencia cuantitativa para apoyar futuras decisiones.
+
+El público objetivo principal incluye:
+
+* **Ministerio del Medio Ambiente (MMA):** Para evaluar la efectividad de las medidas estructurales y del **PCE** en la reducción del material particulado.
+* **Superintendencia del Medio Ambiente (SMA):** Para enfocar los esfuerzos de fiscalización en las comunas que muestran la menor reducción o que siguen incumpliendo la norma.
+* **Comités Ciudadanos y ONGs:** Para informar sobre la evolución del riesgo crónico y agudo de PM₂.₅ en la Región Metropolitana.
+
 El análisis se basa en datos horarios de PM₂.₅ de la red oficial de monitoreo, descargados mediante el paquete `AtmChile`, y se centra en un conjunto de estaciones urbanas representativas de la región. El foco del informe es mostrar, de forma clara y reproducible, cómo han evolucionado las concentraciones de PM₂.₅ tras la implementación del PPDA, utilizando un flujo de trabajo reproducible en R y Quarto.
 
 ***
@@ -119,10 +129,11 @@ Los objetos resultantes (`datos_anuales`, `datos_superacion`, `datos_cambio`) se
 
 ***
 
+## Resultados
 
-A continuación se dejan los espacios para insertar la tabla y las figuras.
+En esta sección se presentan los principales resultados descriptivos del análisis:
 
-### Promedio de PM₂.₅ Pre/Post PPDA, D.S. 31 por estación
+### Promedio de PM₂.₅ Pre/Post PPDA, D.S. 31 por estación de monitoreo
 ```{r}
 #| label: tbl-resumen-gt
 #| tbl-cap: "Concentraciones promedio de PM₂.₅ y cambio neto por estación."
@@ -166,11 +177,6 @@ tabla1_datos %>%
   tab_source_note(
     source_note = "Fuente: Datos SINCA vía AtmChile.")
 ```
-
-
-## Resultados
-
-En esta sección se presentan los principales resultados descriptivos del análisis:
 
 ### Contexto espacial
 
@@ -235,9 +241,7 @@ paleta_pm25 <- scale_fill_viridis_c(
     title.position = "bottom",
     title.hjust = 0.5, # lo ajusta justo en medio
     barwidth       = unit(8, "cm"),     # más ancho
-    barheight      = unit(0.6, "cm")    # más alto
-  )
-)
+    barheight      = unit(0.6, "cm")))    # más alto
 
 # 6. Tema común para los mapas
 tema_mapa <- theme_void() +
@@ -245,15 +249,13 @@ tema_mapa <- theme_void() +
     plot.title = element_text(
       hjust = 0.5,
       face  = "bold",
-      size  = 14
-    ),
+      size  = 14),
     legend.position  = "bottom",
     legend.direction = "horizontal",
     legend.title     = element_text(size = 11),
     legend.text      = element_text(size = 9),
     panel.background = element_rect(fill = "grey98", colour = NA),
-    plot.margin      = margin(0, 0, 0, 0)   # sin espacio extra
-  )
+    plot.margin      = margin(0, 0, 0, 0))   # sin espacio extra
 
 # 7. Mapas Pre y Post
 mapa_pre_gg <- ggplot(mapa_comunas_rm_datos) +
@@ -376,41 +378,39 @@ fig_tendencia <- datos_anuales %>%
   geom_hline(
     data = normas,
     aes(yintercept = valor, color = norma, linetype = norma),
-    linewidth = 0.7
-  ) +
+    linewidth = 0.7) +
   # Línea PPDA
   geom_vline(
     xintercept = ppda_year,
     linetype = "dotted",
     color = "grey30",
-    linewidth = 0.6
-  ) +
+    linewidth = 0.6) +
   # Facetas
   facet_wrap(~ site, ncol = 3) +
   # Escalas
   scale_color_manual(
     values = c(
       "Norma Chilena (20 µg/m³)" = "#CC3300",
-      "Directriz de la OMS (5 µg/m³)" = "#0066CC"
-    ),
-    name = "Referencias"
-  ) +
+      "Directriz de la OMS (5 µg/m³)" = "#0066CC"),
+    name = "Referencias") +
+  
   scale_linetype_manual(
     values = c(
       "Norma Chilena (20 µg/m³)" = "solid",
-      "Directriz de la OMS (5 µg/m³)" = "dashed"
-    ),
-    name = "Referencias"
-  ) +
+      "Directriz de la OMS (5 µg/m³)" = "dashed"),
+    name = "Referencias") +
+  
   scale_y_continuous(limits = c(0, 35),
                      expand = expansion(mult = c(0, 0.05))) +
   scale_x_continuous(breaks = seq(2014, 2024, by = 2)) +
   labs(
     x = "Año",
-    y = expression(PM[2.5]~" promedio ("*mu*g/m^3*")")
-  ) +
+    y = expression(PM[2.5]~" promedio ("*mu*g/m^3*")")) +
+  
   theme_minimal(base_size = 11) +
   theme(
+    plot.background  = element_rect(fill = "white", colour = NA),
+    panel.background = element_rect(fill = "white", colour = NA),
     panel.spacing.x      = unit(0.9, "lines"),
     panel.spacing.y      = unit(0.9, "lines"),
     panel.grid.major.x   = element_blank(),
@@ -564,21 +564,21 @@ fig_dumbbell_50 <-ggplot(datos_plot_50, aes(y = site)) +
     name   = "Período",
     breaks = c("Pre-PPDA, D.S. 31", "Post-PPDA, D.S. 31"),
     values = c("Pre-PPDA, D.S. 31"  = "#EA9F2F",   # borde naranja
-             "Post-PPDA, D.S. 31" = "#939C49")   # borde verde-oliva
-  ) +
+             "Post-PPDA, D.S. 31" = "#939C49")) +  # borde verde-oliva 
+  
   scale_fill_manual(
     values = c("Pre-PPDA, D.S. 31"  = "#F8E4C4",   # crema
              "Post-PPDA, D.S. 31" = "#E6F0C4"),  # verde muy clarito
-    guide = "none"
-  ) +
+    guide = "none") +
+  
   scale_x_continuous(
     breaks = seq(0, 50, by = 10),
-    expand = expansion(mult = c(0.02, 0.20)) 
-  ) + 
+    expand = expansion(mult = c(0.02, 0.20))) +
+  
   labs(
     x = expression(paste("Días de invierno con PM"[2.5] >= 50, " ", mu*g/m^3, " (%)")),
-    y = "Estación de monitoreo"
-  ) +
+    y = "Estación de monitoreo") +
+  
   coord_cartesian(clip = "off") +
   theme_void() +
   theme(
@@ -613,18 +613,21 @@ guardar_fig(
 ```
 
 
-## Comentarios finales
+## Comentarios Finales y Conclusión
 
-En conjunto, la Tabla 1 y los Gráficos 1–3 muestran una **reducción consistente de PM₂.₅** entre el período Pre-PPDA (2014–2017) y el Post-PPDA (2018–2024). Todas las estaciones analizadas presentan descensos en el promedio anual, en el orden de **3–5,5 µg/m³**, con caídas mayores en las comunas históricamente más contaminadas. El mapa por comunas sugiere que el impacto del PPDA y del Programa de Compensación de Emisiones ha sido **desigual territorialmente**, con algunas áreas que mejoran más que otras.
+En conjunto, la Tabla 1 y los Gráficos 1–3 muestran una reducción consistente de PM₂.₅ entre el período Pre-PPDA (2014–2017) y el Post-PPDA (2018–2024).
 
-La evolución anual por estación indica que, tras 2018, los niveles de PM₂.₅ tienden a **bajar o estabilizarse en valores menores**, pero en la mayoría de los casos aún permanecen sobre la **norma OMS (5 µg/m³)** y, en varios años, también sobre la **norma chilena (20 µg/m³)**. En invierno, la proporción de días con PM₂.₅ ≥ 50 µg/m³ disminuye en todas las estaciones, lo que apunta a menos episodios críticos, aunque todavía son frecuentes en algunas zonas.
+- Todas las estaciones analizadas presentan descensos en el promedio anual, en el orden de **3–5,5 µg/m³**, con caídas mayores en las comunas históricamente más contaminadas.
+- En invierno, la proporción de días con PM₂.₅ ≥ 50 µg/m³ disminuye en todas las estaciones, lo que apunta a **menos episodios críticos** (validado por el Gráfico 3).
+
+La evolución anual por estación indica que, tras 2018, los niveles de PM₂.₅ µg/m³ tienden a **bajar o estabilizarse en valores menores**, pero en la mayoría de los casos aún permanecen sobre la **norma OMS (5 µg/m³)** y, en varios años, también sobre la **norma chilena (20 µg/m³)**.
 
 En suma, los resultados son **compatibles con un efecto positivo del PPDA sobre la contaminación por PM₂.₅**, pero el análisis es descriptivo y no permite atribuir los cambios exclusivamente al plan. Futuros trabajos deberían incorporar modelos con contrafactual y ajuste por meteorología para estimar con mayor precisión el impacto atribuible al PPDA sobre la calidad del aire y la salud.
 
 
 ## Material suplementario y recursos adicionales
 
-Este reporte cuenta con material suplementario en formato PDF, que incluye para cada estación de monitoreo (LC, EB, PU, QU, LF, PA, CEI, TALI, CN, IN, CEII) un análisis detallado del perfil horario y la tendencia anual de PM₂.₅ en el período 2014–2024.
+Este reporte cuenta con material suplementario en formato PDF, que incluye para cada estación de monitoreo un análisis detallado del perfil horario y la tendencia anual de PM₂.₅ en el período 2014–2024.
 
 Como complemento, se sugiere revisar:
 
