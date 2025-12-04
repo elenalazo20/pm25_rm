@@ -40,6 +40,7 @@ library (leafsync)
 library(patchwork)
 library(grid)
 library(forcats)
+library(tidyr)
 
 # 2) Fijar raíz del proyecto y cargar datos procesados
 source(here::here("R", "01_configuracion.R"))
@@ -57,17 +58,13 @@ site_labels <- c(
 datos_anuales <- datos_anuales %>%
   dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
 
-# Gráfico 3A (Magnitud-concentración) 
-datos_cambio <- datos_cambio %>%
+# Gráfico 3 (Frecuencia)
+datos_superacion <- datos_superacion %>%
   dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
-
-# Gráfico 3B (Frecuencia)
-#datos_superacion_filtrado <- datos_superacion_filtrado %>%
-#  dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
 ```
 ## Introducción
 
-Este informe forma parte del curso **Análisis y Visualización de Datos Medioambientales** y tiene como objetivo evaluar de forma descriptiva el impacto del **Plan de Prevención y Descontaminación Atmosférica (PPDA, D.S. 31/2016)** sobre las concentraciones de material particulado fino ($\text{PM}_{2.5}$) en la **Región Metropolitana de Santiago** durante el periodo **2014–2024**.
+Este informe forma parte del curso **Análisis y Visualización de Datos Medioambientales** y tiene como objetivo evaluar de forma descriptiva el impacto del **Plan de Prevención y Descontaminación Atmosférica (PPDA, D.S. 31/2016)** sobre las concentraciones de material particulado fino (PM₂.₅) en la **Región Metropolitana de Santiago** durante el periodo **2014–2024**.
 
 El **Decreto Supremo N° 31/2016**, que *establece el PPDA para la Región Metropolitana de Santiago*, fue publicado el **24 de noviembre de 2017**. Dentro de sus medidas estructurales se incorpora el **Programa de Compensación de Emisiones (PCE)**, cuyo objetivo es avanzar hacia el cumplimiento de las normas primarias de calidad ambiental del aire vigentes, en particular para el **Material Particulado Respirable (MP)**.  
 
@@ -76,9 +73,9 @@ El PCE busca compensar las **emisiones totales anuales, directas e indirectas**,
 En este contexto, el informe define dos periodos de análisis:
 
 - **Pre-PPDA (2014–2017):** años previos a la publicación del D.S. 31 y a la implementación efectiva de las medidas estructurales del plan, incluyendo el PCE.  
-- **Post-PPDA (2018–2024):** periodo posterior a la publicación del decreto, donde se espera observar los primeros efectos agregados de la implementación del PPDA sobre los niveles de $\text{PM}_{2.5}$.
+- **Post-PPDA (2018–2024):** periodo posterior a la publicación del decreto, donde se espera observar los primeros efectos agregados de la implementación del PPDA sobre los niveles de PM₂.₅.
 
-El análisis se basa en datos horarios de $\text{PM}_{2.5}$ de la red oficial de monitoreo, descargados mediante el paquete `AtmChile`, y se centra en un conjunto de estaciones urbanas representativas de la región. El foco del informe es mostrar, de forma clara y reproducible, cómo han evolucionado las concentraciones de $\text{PM}_{2.5}$ tras la implementación del PPDA, utilizando un flujo de trabajo reproducible en R y Quarto.
+El análisis se basa en datos horarios de PM₂.₅ de la red oficial de monitoreo, descargados mediante el paquete `AtmChile`, y se centra en un conjunto de estaciones urbanas representativas de la región. El foco del informe es mostrar, de forma clara y reproducible, cómo han evolucionado las concentraciones de PM₂.₅ tras la implementación del PPDA, utilizando un flujo de trabajo reproducible en R y Quarto.
 
 ***
 
@@ -86,7 +83,7 @@ El análisis se basa en datos horarios de $\text{PM}_{2.5}$ de la red oficial de
 
 ### Fuentes de datos
 
-Los datos de calidad del aire se obtuvieron usando la función `ChileAirQuality` del paquete **AtmChile**, solicitando registros horarios de $\text{PM}_{2.5}$ para el periodo **2014-2024** y para un conjunto de comunas de la Región Metropolitana (por ejemplo, Cerrillos, Cerro Navia, El Bosque, Independencia, Las Condes, Pudahuel, Puente Alto, Quilicura, entre otras).
+Los datos de calidad del aire se obtuvieron usando la función `ChileAirQuality` del paquete **AtmChile**, solicitando registros horarios de PM₂.₅ para el periodo **2014-2024** y para un conjunto de comunas de la Región Metropolitana (por ejemplo, Cerrillos, Cerro Navia, El Bosque, Independencia, Las Condes, Pudahuel, Puente Alto, Quilicura, entre otras).
 
 Tras la descarga se realizaron los siguientes pasos de limpieza y preparación:
 
@@ -109,9 +106,9 @@ En el script **`R/03_analisis_ppda.R`** se construyen las variables analíticas 
 - **Invierno (`is_winter`):** meses de mayo a agosto, con el fin de focalizar el análisis de días críticos en la época del año de mayor exposición.  
 
 - **Indicadores resumen:**
-  - media anual de $\text{PM}_{2.5}$ por estación,  
-  - porcentaje de días de invierno con $\text{PM}_{2.5}$ ≥ 50 µg/m³,  
-  - promedio de $\text{PM}_{2.5}$ por periodo (Pre/Post) con intervalos de confianza.
+  - media anual de PM₂.₅ por estación,  
+  - porcentaje de días de invierno con PM₂.₅ ≥ 50 µg/m³,  
+  - promedio de PM₂.₅ por periodo (Pre/Post) con intervalos de confianza.
 
 Los objetos resultantes (`datos_anuales`, `datos_superacion`, `datos_cambio`) se guardan en  
 **`datos_procesados/analisis_pm25_ppda.RData`** y son los que se cargan al inicio de este reporte.
@@ -121,10 +118,10 @@ Los objetos resultantes (`datos_anuales`, `datos_superacion`, `datos_cambio`) se
 
 A continuación se dejan los espacios para insertar la tabla y las figuras.
 
-### Promedio de $\text{PM}_{2.5}$ Pre/Post PPDA por estación
+### Promedio de PM₂.₅ Pre/Post PPDA por estación
 ```{r}
 #| label: tbl-resumen-gt
-#| tbl-cap: "Concentraciones promedio de PM2.5 y cambio neto por estación."
+#| tbl-cap: "Concentraciones promedio de PM₂.₅ y cambio neto por estación."
 
 # Preparamos los datos de la tabla (usando datos_cambio)
 tabla1_datos <- datos_cambio %>%
@@ -134,36 +131,34 @@ tabla1_datos <- datos_cambio %>%
 tabla1_datos %>%
   gt() %>%
   tab_header(
-    title = md("**Evolución de la Concentración Anual de PM2.5 en la RM**"),
-    subtitle = md("Comparación de promedios anuales antes (2014-2017) y después (2018-Actual) del PPDA.")
+    title = md("**Evolución de la Concentración Anual de PM₂.₅ en la RM**"),
+    subtitle = md("Comparación de promedios anuales antes (2014-2017) y después (2018-2024) del PPDA, D.S. 31")) %>%
+  cols_align(
+    align = "center",
+    columns = -site 
   ) %>%
   cols_label(
     site = "Estación",
-    mean_Pre = "Promedio Pre-PPDA",
-    mean_Post = "Promedio Post-PPDA",
+    mean_Pre = "Promedio Pre-PPDA, D.S. 31",
+    mean_Post = "Promedio Post-PPDA, D.S. 31",
     reduccion = "Reducción Neta",
-    ymin_Pre = "CI Inf. Pre",
-    ymax_Pre = "CI Sup. Pre",
-    ymin_Post = "CI Inf. Post",
-    ymax_Post = "CI Sup. Post"
-  ) %>%
+    ymin_Pre = "IC Inf. Pre",
+    ymax_Pre = "IC Sup. Pre",
+    ymin_Post = "IC Inf. Post",
+    ymax_Post = "IC Sup. Post") %>%
   data_color(
     columns = reduccion,
     palette = c("#F8766D", "white", "#00BFC4"), # Rojo (empeora) -> Blanco -> Azul (mejora)
-    domain = c(min(tabla1_datos$reduccion, na.rm=TRUE), 0, max(tabla1_datos$reduccion, na.rm=TRUE))
-  ) %>%
+    domain = c(min(tabla1_datos$reduccion, na.rm=TRUE), 0, max(tabla1_datos$reduccion, na.rm=TRUE))) %>%
   tab_spanner( # Agrupamos los Intervalos de Confianza (CI)
-    label = "Intervalo de Confianza (95%) - Pre PPDA",
-    columns = c(ymin_Pre, ymax_Pre)
-  ) %>%
+    label = "Intervalo de Confianza (95%) - Pre PPDA, D.S. 31",
+    columns = c(ymin_Pre, ymax_Pre)) %>%
   tab_spanner(
-    label = "Intervalo de Confianza (95%) - Post PPDA",
-    columns = c(ymin_Post, ymax_Post)
-  ) %>%
+    label = "Intervalo de Confianza (95%) - Post PPDA, D.S. 31",
+    columns = c(ymin_Post, ymax_Post)) %>%
   fmt_number(columns = where(is.numeric), decimals = 1) %>%
   tab_source_note(
-    source_note = "Fuente: Datos SINCA vía AtmChile. LC: Las Condes, EB: El Bosque, PU: Pudahuel, QU: Quilicura, LF: La Florida, PA: Puente Alto, CEI: Cerrillos, TALI: Talagante, CN: Cerro Navia, IN: Independencia, CEII: Cerrillos 1."
-  )
+    source_note = "Fuente: Datos SINCA vía AtmChile.")
 ```
 
 
@@ -173,11 +168,11 @@ En esta sección se presentan los principales resultados descriptivos del análi
 
 ### Contexto espacial
 
-**Mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de $\text{PM}_{2.5}$.** 
+**Mapa de la localización de las estaciones en la Región Metropolitana y niveles medios de PM₂.₅.** 
 
-**Pregunta:** ¿Cómo se distribuye espacialmente la contaminación promedio por $\text{PM}_{2.5}$ en las comunas monitoreadas de la Región Metropolitana, y cómo se compara esta distribución entre el período Pre-PPDA D.S. 31 (2014-2017) y Post-PPDA D.S. 31 (2018-2024)?
+**Pregunta:** ¿Cómo se distribuye espacialmente la contaminación promedio por PM₂.₅ en las comunas monitoreadas de la Región Metropolitana, y cómo se compara esta distribución entre el período Pre-PPDA D.S. 31 (2014-2017) y Post-PPDA D.S. 31 (2018-2024)?
 
-**Hipótesis Descriptiva:** Se espera que las comunas del sector poniente y centro de Santiago (por ejemplo Pudahuel, Cerro Navia, Santiago) presenten concentraciones promedio de $\text{PM}_{2.5}$ más altas que las comunas del sector oriente (por ejemplo Las Condes), y se espera que esta diferencia se mantenga en ambos períodos.
+**Hipótesis Descriptiva:** Se espera que las comunas del sector poniente y centro de Santiago (por ejemplo Pudahuel, Cerro Navia, Santiago) presenten concentraciones promedio de PM₂.₅ más altas que las comunas del sector oriente (por ejemplo Las Condes), y se espera que esta diferencia se mantenga en ambos períodos.
 
 ```{r}
 #| label: fig-mapa-pre-post
@@ -323,7 +318,7 @@ mapa_pre_post
 </div>
 ```
 
-### Tendencia anual de $\text{PM}_{2.5}$ (2014-2024) por estación
+### Evaluación a largo plazo (exposición anual)
 
 **Contrastando las series con las recomendaciones de la OMS y la norma chilena** 
 
@@ -410,109 +405,164 @@ datos_anuales %>%
         legend.title = element_text(face = "bold"))
 ```
 
-### Evaluación en invierno
+### Evaluación a corto plazo (riesgo agudo)
 
-**Mostrando el promedio de PM₂.₅ y la frecuencia de días con PM₂.₅ ≥ 50 µg/m³ antes y después del PPDA, D.S.31**
+**Frecuencia de Episodios Críticos**
 
-**Pregunta:** ¿Cuál fue el impacto del PPDA en el invierno (Mayo-Agosto) en términos de la magnitud de la contaminación promedio y la frecuencia de los episodios que superan la Norma Diaria (50 µg/m³)?
+**Pregunta:** ¿Cuál fue el impacto del PPDA en la frecuencia de los días con concentración de PM₂.₅ superior a 50 µg/m³ (Norma Diaria) durante el periodo crítico de invierno (Mayo-Agosto)?
 
-**Hipótesis Descriptiva:** Se espera que, en el período Post-PPDA (2018-2024), la magnitud promedio de las concentraciones de PM₂.₅ en invierno sea notablemente menor que en el período Pre-PPDA (2014-2017), y que esta reducción se manifieste en una disminución clara del porcentaje de días con episodios críticos (≥ 50 µg/m) en la mayoría de las estaciones de la Región Metropolitana.
+**Hipótesis Descriptiva:** Se espera que, en el período Post-PPDA (2018-2024), la disminución del porcentaje de días que exceden el umbral de 50 µg/m³ sea notablemente clara en la mayoría de las estaciones de la Región Metropolitana, reflejando el impacto positivo de las medidas de control atmosférico.
 
 ```{r}
-#| label: data-dumbbell
+#| label: data-dumbbell-50
 #| echo: false
 #| message: false
 #| warning: false
 
-# 1. Preparación de Datos: Seleccionar las medias Pre/Post y ordenar
-datos_dumbbell_magnitud <- datos_cambio %>%
-    select(site, mean_Pre, mean_Post) %>%
-    filter (!is.na(mean_Post) & !is.na(mean_Pre)) %>% # elimina las filas incompletas
-    mutate(
-      diff_value = mean_Pre - mean_Post,    # la diferencia
-      midpoint_x = mean_Post + (diff_value / 2),    # punto medio del segmento
-      diff_label = paste0(
-            "Δ: ",
-            round(diff_value, 1)),
-      site = factor(site, levels = site[order(mean_Pre)]) # site ahora es factor y se ordena la mean de < a > 
-    ) %>%
-    rename(Pre = mean_Pre, Post = mean_Post) # renombrar para mas simplicidad
+datos_dumbbell_50 <- datos_superacion %>%
+  filter(periodo_ppda %in% c("1. Pre-PPDA (2014-2017)",
+                            "2. Post-PPDA (2018-Actual)")) %>%
+  select(site, periodo_ppda, porcentaje_sobre_50) %>%
+  tidyr::pivot_wider(
+    names_from = periodo_ppda,
+    values_from = porcentaje_sobre_50) %>%
+  rename(
+    Pre = `1. Pre-PPDA (2014-2017)`,
+    Post = `2. Post-PPDA (2018-Actual)`) %>%
+  filter(!is.na(Pre) & !is.na(Post)) %>%
+  mutate(
+    diff_raw = Post - Pre,
+    # 1. Calcula la magnitud absoluta del cambio
+    abs_reduction = abs(diff_raw), 
+    diff_str = sprintf("%+.1f", diff_raw),
+    # 2. Ordena el factor por la magnitud de la reducción (la mayor reducción va al inicio)
+    site = forcats::fct_reorder(site, abs_reduction, .desc = TRUE))
+
+datos_plot_50 <- datos_dumbbell_50
 ```
 
 ```{r}
-#| label: fig-dumbbell-magnitud
-#| fig-cap: "Gráfico 3A. Comparación de la concentración promedio de PM₂.₅ en invierno (µg/m³) entre los períodos Pre-PPDA, D.S. 31 y Post-PPDA, D.S. 31."
+#| label: fig-dumbbell-50
+#| fig-cap: "Porcentaje de días de invierno con PM₂.₅ ≥ 50 µg/m³ antes y después del PPDA, D.S. 31."
 #| fig-height: 7
 #| fig-width: 9
+#| warning: false
+#| message: false
 
-datos_plot <- datos_dumbbell_magnitud |> #ordenar estaciones por valor Post (de menor a mayor)
-  mutate(site = fct_reorder(site, Post))
+max_lim <- max(datos_plot_50$Pre, datos_plot_50$Post, na.rm = TRUE)
+max_lim <- ceiling(max_lim / 10) * 10
+xgap    <- max_lim + 14
 
-ggplot(datos_plot, aes(y = site)) +
-  
-  geom_segment( # palito gris gordo 
+segment_grid <- expand.grid(
+  x    = seq(10, max_lim, 10),
+  site = levels(datos_plot_50$site))
+segment_grid$y <- as.numeric(segment_grid$site)
+
+n_est     <- nlevels(datos_plot_50$site)
+hlines_df <- data.frame(y = seq_len(n_est - 1) + 0.5)
+
+ggplot(datos_plot_50, aes(y = site)) +
+  ## líneas horizontales punteadas
+  geom_hline(
+    data = hlines_df,
+    aes(yintercept = y),
+    inherit.aes = FALSE,
+    linetype = "dotted",
+    linewidth = 0.5,
+    colour = "#CCCCCC") +
+  ## tira de fondo beige (color del ejemplo)
+  geom_segment(
+    aes(x = 0, xend = max_lim, yend = site),
+    colour   = "#EDECE3",
+    linewidth = 9,
+    lineend   = "butt") +
+  ## marquitas verticales sobre la tira
+  geom_segment(
+    data = segment_grid,
+    aes(x = x, xend = x, y = y - 0.25, yend = y + 0.25),
+    inherit.aes = FALSE,
+    colour   = "#CCCCCC",
+    linewidth = 0.4) +
+  ## la pesita gris
+  geom_segment(
     aes(x = Pre, xend = Post, yend = site),
-    colour  = "#D3D3D3",
+    colour   = "#A7A9AC",
     linewidth = 6,
-    lineend = "round") +
-  
-  geom_label(
-    aes(x = midpoint_x, label = diff_label), # etiqueta de la diferencia en el centro del segmento
-    fill         = "#D3D3D3",
-    colour       = "#4a4e4d",
-    size         = 3,
-    fontface     = "bold",
-    label.size   = 0,
-    label.padding = unit(0.12, "lines")) +
-  
-  geom_point(aes(x = Pre,  colour = "Pre-PPDA, D.S. 31"),  size = 3.6) +   # puntos de cada período
-  geom_point(aes(x = Post, colour = "Post-PPDA, D.S. 31"), size = 3.6) +
-  
-  scale_color_manual(
+    lineend   = "round") +
+  ## texto Post (izquierda del punto verde-oliva)
+  geom_text(
+    aes(x = Post - max_lim * 0.035,
+        label = sprintf("%.1f", Post),
+        colour = "Post-PPDA, D.S. 31"),
+    size        = 3.5,
+    fontface  = "bold",
+    hjust       = 1,
+    show.legend = FALSE) +
+  ## texto Pre (derecha del punto naranja)
+  geom_text(
+    aes(x = Pre + max_lim * 0.035,
+        label = sprintf("%.1f", Pre),
+        colour = "Pre-PPDA, D.S. 31"),
+    size        = 3.5,
+    fontface  = "bold",
+    hjust       = 0,
+    show.legend = FALSE) +
+  ## puntos tipo “borde coloreado + relleno claro”
+  geom_point(
+    aes(x = Pre,
+      colour = "Pre-PPDA, D.S. 31",
+      fill   = "Pre-PPDA, D.S. 31"),
+    shape = 21, size = 5, stroke = 1.3) +
+  geom_point(
+    aes(x = Post,
+      colour = "Post-PPDA, D.S. 31",
+      fill   = "Post-PPDA, D.S. 31"),
+    shape = 21, size = 5, stroke = 1.3) +
+  ## columna derecha con el delta
+  geom_vline(xintercept = xgap, colour = "#EDECE3", linewidth = 15) +
+  geom_text(
+    aes(x = xgap, label = sprintf("%+.1f", diff_raw)),
+    size      = 3.5,
+    fontface  = "bold",
+    colour    = "#444444") +
+  ## paleta como en el ejemplo (naranja + verde oliva)
+  scale_colour_manual(
     name   = "Período",
-    values = c("Pre-PPDA, D.S. 31"  = "#00BFC4",   # colores de las bolitas
-               "Post-PPDA, D.S. 31" = "#F8766D")) +
-  
-    scale_x_continuous(
-    breaks  = seq(16, 34, 2),
-    expand  = expansion(mult = c(0.02, 0.08))) +
-  
+    breaks = c("Pre-PPDA, D.S. 31", "Post-PPDA, D.S. 31"),
+    values = c("Pre-PPDA, D.S. 31"  = "#EA9F2F",   # borde naranja
+             "Post-PPDA, D.S. 31" = "#939C49")   # borde verde-oliva
+  ) +
+  scale_fill_manual(
+    values = c("Pre-PPDA, D.S. 31"  = "#F8E4C4",   # crema
+             "Post-PPDA, D.S. 31" = "#E6F0C4"),  # verde muy clarito
+    guide = "none"
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, 50, by = 10),
+    expand = expansion(mult = c(0.02, 0.20)) 
+  ) + 
   labs(
-    x = expression(PM[2.5]~" promedio en invierno ("*mu*g/m^3*")"), # etiquetas de ejes
-    y = "Estación de monitoreo") +
-  
+    x = expression(paste("Días de invierno con PM"[2.5] >= 50, " ", mu*g/m^3, " (%)")),
+    y = "Estación de monitoreo"
+  ) +
   coord_cartesian(clip = "off") +
-
-  theme_minimal() +
+  theme_void() +
   theme(
-    panel.background = element_rect(fill = "grey95", colour = NA), #fondo de la grilla
-    plot.background  = element_rect(fill = "white", colour = NA),  #fondo del plot
-
-    panel.grid.major = element_line(colour = "white", linewidth = 0.2), # linea grilla con el numero
-    panel.grid.minor = element_line(colour = "white", linewidth = 0.2), #linea grilla sin el numero
-
-    axis.title.y     = element_text(margin = margin(r = 8)),     # quitar chirimbolos innecesarios
-    axis.ticks.y     = element_blank(),
-
-    plot.margin = margin(10, 20, 10, 10),     # un poco más de aire entre panel y ejes
-
+    plot.background  = element_rect(fill = "white", colour = NA),
+    axis.text.y      = element_text(colour = "#222222", size = 9),
+    axis.text.x = element_text(colour = "#4a4e4d", size = 9, 
+                               margin = margin(t = 5)),
+    axis.title.x     = element_text(colour = "#4a4e4d", size = 10,
+                                    margin = margin(t = 10)),
+    axis.title.y     = element_text(colour = "#4a4e4d", size = 10,
+                                    margin = margin(r = 8)),
+    axis.ticks.x = element_line(color = "#4a4e4d", linewidth = 0.8),
+    axis.ticks.length = unit(0.09, "cm"), # Hace las rayitas
+    plot.margin      = margin(10, 30, 20, 10, "pt"),
     legend.position  = "right",
     legend.title     = element_text(face = "bold"),
-    text             = element_text(colour = "#4a4e4d")
-  )
-
-
-```  
-
-```{r}
-
+    text             = element_text(colour = "#4a4e4d"))
 ```
-
-```{r}
-
-```
-
-
 
 ## Comentarios finales
 

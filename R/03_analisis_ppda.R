@@ -97,3 +97,4 @@ datos_cambio <- promedios_periodo %>%
 # Guardamos los 3 objetos que usará el reporte Quarto
 save(datos_anuales, datos_superacion, datos_cambio,
      file = here("datos_procesados", "analisis_pm25_ppda.RData"))
+
