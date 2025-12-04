@@ -61,6 +61,10 @@ datos_anuales <- datos_anuales %>%
 # Gráfico 3 (Frecuencia)
 datos_superacion <- datos_superacion %>%
   dplyr::mutate(site = dplyr::recode(site, !!!site_labels))
+
+# 5) Guardar todas las figuras que genere el documento en figuras/
+knitr::opts_chunk$set(
+  fig.path = "figuras/")
 ```
 ## Introducción
 
@@ -118,14 +122,16 @@ Los objetos resultantes (`datos_anuales`, `datos_superacion`, `datos_cambio`) se
 
 A continuación se dejan los espacios para insertar la tabla y las figuras.
 
-### Promedio de PM₂.₅ Pre/Post PPDA por estación
+### Promedio de PM₂.₅ Pre/Post PPDA, D.S. 31 por estación
 ```{r}
 #| label: tbl-resumen-gt
 #| tbl-cap: "Concentraciones promedio de PM₂.₅ y cambio neto por estación."
 
 # Preparamos los datos de la tabla (usando datos_cambio)
 tabla1_datos <- datos_cambio %>%
-  select(site, mean_Pre, mean_Post, reduccion, ymin_Pre, ymax_Pre, ymin_Post, ymax_Post) %>%
+  mutate(site = dplyr::recode(site, !!!site_labels)) %>%  
+  select(site, mean_Pre, mean_Post, reduccion,
+         ymin_Pre, ymax_Pre, ymin_Post, ymax_Post) %>%
   mutate(across(where(is.numeric), ~ round(., 1)))
 
 tabla1_datos %>%
@@ -194,9 +200,7 @@ diccionario_sitios <- tibble::tibble(
   site = c("LC", "EB", "PU", "QU", "LF", "PA", "CEI", "TALI", "CN", "IN", "CEII"),
   codigo_comuna = c(
     "13114", "13105", "13124", "13126", "13110", "13125", "13103",
-    "13601", "13104", "13109", "13103"
-  )
-)
+    "13601", "13104", "13109", "13103"))
 
 # 3. Promedios por comuna a partir de datos_cambio
 datos_agrupados_comuna <- datos_cambio |>
@@ -207,8 +211,7 @@ datos_agrupados_comuna <- datos_cambio |>
     mean_Pre  = mean(mean_Pre,  na.rm = TRUE),
     mean_Post = mean(mean_Post, na.rm = TRUE),
     reduccion = mean(reduccion, na.rm = TRUE),
-    .groups   = "drop"
-  )
+    .groups   = "drop")
 
 # 4. Unir los datos al shapefile y volver a asegurar sf
 mapa_comunas_rm_datos <- mapa_comunas_rm |>
@@ -219,8 +222,7 @@ mapa_comunas_rm_datos <- mapa_comunas_rm |>
 limites_escala <- range(
   c(mapa_comunas_rm_datos$mean_Pre,
     mapa_comunas_rm_datos$mean_Post),
-  na.rm = TRUE
-)
+  na.rm = TRUE)
 
 paleta_pm25 <- scale_fill_viridis_c(
   name      = expression(PM[2.5]~" promedio (µg/m"^3*")"),
@@ -277,6 +279,18 @@ mapa_pre_post <- mapa_pre_gg + mapa_post_gg +
 mapa_pre_post
 ```
 
+```{r}
+#| label: save-fig-mapa-pre-post
+#| include: false
+
+guardar_fig(
+mapa_pre_post,
+"figuras/fig01_mapa_pre_post.png",
+w = 12,
+h = 5,
+dpi = 300)
+```
+
 ```{=html}
 <button type="button"
         class="btn btn-primary"
@@ -328,7 +342,7 @@ mapa_pre_post
 
 ```{r}
 #| label: fig-tendencia-facet
-#| fig-cap: "Gráfico 2. Evolución Anual del PM2.5 por Estación (2014-2024), comparada con la Norma Chilena Anual (20 µg/m³) y la Directriz OMS (5 µg/m³)."
+#| fig-cap: "Evolución Anual del PM2.5 por Estación (2014-2024), comparada con la Norma Chilena Anual (20 µg/m³) y la Directriz OMS (5 µg/m³)."
 #| fig-height: 8
 #| fig-width: 9
 
@@ -353,56 +367,76 @@ normas <- tibble::tibble(
         "Norma Chilena (20 µg/m³)",
         "Directriz de la OMS (5 µg/m³)" ))
 
-# 3. Creación del Gráfico
-datos_anuales %>%
-    ggplot(aes(x = year, y = pm25_anual)) +
-  
-    geom_line(color = "#1f77b4", linewidth = 0.9) + # lineas
-    geom_point(color = "#1f77b4", size = 1.8) +     # puntos
-    
-    geom_hline(               # lineas de referencias (normas)
-        data = normas,
-        aes(yintercept = valor, color = norma, linetype = norma),
-        linewidth = 0.7) +
-  
-    geom_vline(
-        xintercept = ppda_year,
-        linetype = "dotted",
-        color = "grey30",
-        linewidth = 0.6) +
-    
-    facet_wrap(~ site, ncol = 3) +    # faceteado
-    
-    scale_color_manual(     #escalas
-        values = c(
-            "Norma Chilena (20 µg/m³)" = "#CC3300",
-            "Directriz de la OMS (5 µg/m³)" = "#0066CC"),
-        name = "Referencias") +
-  
-    scale_linetype_manual(
-        values = c(
-            "Norma Chilena (20 µg/m³)" = "solid",
-            "Directriz de la OMS (5 µg/m³)" = "dashed"),
-        name = "Referencias") +
+# 3. Crear el objeto de la figura
+fig_tendencia <- datos_anuales %>%
+  ggplot(aes(x = year, y = pm25_anual)) +
+  geom_line(color = "#1f77b4", linewidth = 0.9) +
+  geom_point(color = "#1f77b4", size = 1.8) +
+  # Normas
+  geom_hline(
+    data = normas,
+    aes(yintercept = valor, color = norma, linetype = norma),
+    linewidth = 0.7
+  ) +
+  # Línea PPDA
+  geom_vline(
+    xintercept = ppda_year,
+    linetype = "dotted",
+    color = "grey30",
+    linewidth = 0.6
+  ) +
+  # Facetas
+  facet_wrap(~ site, ncol = 3) +
+  # Escalas
+  scale_color_manual(
+    values = c(
+      "Norma Chilena (20 µg/m³)" = "#CC3300",
+      "Directriz de la OMS (5 µg/m³)" = "#0066CC"
+    ),
+    name = "Referencias"
+  ) +
+  scale_linetype_manual(
+    values = c(
+      "Norma Chilena (20 µg/m³)" = "solid",
+      "Directriz de la OMS (5 µg/m³)" = "dashed"
+    ),
+    name = "Referencias"
+  ) +
+  scale_y_continuous(limits = c(0, 35),
+                     expand = expansion(mult = c(0, 0.05))) +
+  scale_x_continuous(breaks = seq(2014, 2024, by = 2)) +
+  labs(
+    x = "Año",
+    y = expression(PM[2.5]~" promedio ("*mu*g/m^3*")")
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    panel.spacing.x      = unit(0.9, "lines"),
+    panel.spacing.y      = unit(0.9, "lines"),
+    panel.grid.major.x   = element_blank(),
+    panel.grid.minor     = element_blank(),
+    panel.grid.major.y   = element_line(colour = "grey90"),
+    strip.background     = element_rect(fill = "grey95", colour = NA),
+    strip.text           = element_text(face = "bold"),
+    axis.text.x          = element_text(angle = 45, hjust = 1),
+    axis.ticks.x = element_line(color = "#4a4e4d", linewidth = 0.5),
+    legend.position      = "bottom",
+    legend.title         = element_text(face = "bold"))
 
-    scale_y_continuous(limits = c(0, 35), expand = expansion(mult = c(0, 0.05))) +  # ajustes estéticos y etiquetas
-    scale_x_continuous(breaks = seq(2014, 2024, by = 2)) +
-    labs(
-        x = "Año",
-        y = expression(PM[2.5]~" promedio ("*mu*g/m^3*")")) +
-  
-    theme_minimal(base_size = 11) +
-    theme(
-        panel.spacing.x = unit(0.9, "lines"),
-        panel.spacing.y = unit(0.9, "lines"),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.grid.major.y = element_line(colour = "grey90"),
-        strip.background = element_rect(fill = "grey95", colour = NA),
-        strip.text = element_text(face = "bold"),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "bottom",
-        legend.title = element_text(face = "bold"))
+# Mostrar la figura en el reporte
+fig_tendencia
+```
+
+```{r}
+#| label: save-fig-tendencia-facet
+#| include: false
+
+guardar_fig(
+  fig_tendencia,
+  "figuras/fig02_tendencia_facet.png",
+  w   = 9,
+  h   = 8,
+  dpi = 300)
 ```
 
 ### Evaluación a corto plazo (riesgo agudo)
@@ -432,10 +466,10 @@ datos_dumbbell_50 <- datos_superacion %>%
   filter(!is.na(Pre) & !is.na(Post)) %>%
   mutate(
     diff_raw = Post - Pre,
-    # 1. Calcula la magnitud absoluta del cambio
+    # Calculo la magnitud absoluta del cambio
     abs_reduction = abs(diff_raw), 
     diff_str = sprintf("%+.1f", diff_raw),
-    # 2. Ordena el factor por la magnitud de la reducción (la mayor reducción va al inicio)
+    # Ordena el factor por la magnitud de la reducción (la mayor reducción va al inicio)
     site = forcats::fct_reorder(site, abs_reduction, .desc = TRUE))
 
 datos_plot_50 <- datos_dumbbell_50
@@ -461,7 +495,7 @@ segment_grid$y <- as.numeric(segment_grid$site)
 n_est     <- nlevels(datos_plot_50$site)
 hlines_df <- data.frame(y = seq_len(n_est - 1) + 0.5)
 
-ggplot(datos_plot_50, aes(y = site)) +
+fig_dumbbell_50 <-ggplot(datos_plot_50, aes(y = site)) +
   ## líneas horizontales punteadas
   geom_hline(
     data = hlines_df,
@@ -562,7 +596,22 @@ ggplot(datos_plot_50, aes(y = site)) +
     legend.position  = "right",
     legend.title     = element_text(face = "bold"),
     text             = element_text(colour = "#4a4e4d"))
+
+fig_dumbbell_50
 ```
+
+```{r}
+#| label: save-fig-dumbbell_50
+#| include: false
+
+guardar_fig(
+  fig_dumbbell_50,
+  "figuras/fig03_dumbbell_50.png",
+  w   = 9,
+  h   = 8,
+  dpi = 300)
+```
+
 
 ## Comentarios finales
 
