@@ -59,6 +59,8 @@ C:/Users/elena/Documents/GitHub/pm25_rm
 │       └── holtzy
 │           └── lumo
 └── resultados
-    └── csv
-        └── csv_rm.csv
+    ├── csv
+    │   └── csv_rm.csv
+    ├── estructura_proyecto.md
+    └── estructura_proyecto.txt
 ```

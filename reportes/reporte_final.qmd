@@ -12,7 +12,7 @@ format:
     logo: "UC_Chile.png"
     github-repo: "https://github.com/elenalazo20/pm25_rm"
     primary-color: "#69b3a2"
-    self-contained: true
+    self-contained: false
     is-particlejs-enabled: true
     bg-image: ""
     css: "style_ppda.css"
@@ -634,7 +634,7 @@ library(stringr)
 library(knitr)
 library(kableExtra)
 library(dplyr)
-library(here) # Aseguramos que here esté cargado
+library(here) 
 
 # 1. Obtener la lista de archivos PDF generados
 lista_pdfs <- list.files(
