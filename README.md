@@ -1,9 +1,3 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # PM2.5 - Región Metropolitana (2018-2024): visualización y análisis 🌁
 
 **Proyecto Final del Curso Visualización y Análisis de Datos
