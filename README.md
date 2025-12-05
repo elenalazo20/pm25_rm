@@ -1,5 +1,7 @@
 # PM2.5 - Región Metropolitana (2018-2024): visualización y análisis 🌁
 
+[![DOI](https://zenodo.org/badge/1090606592.svg)](https://doi.org/10.5281/zenodo.17824652)
+
 **Proyecto Final del Curso Visualización y Análisis de Datos
 Medioambientales (AGP3141)**  
 Docente: @Saryace · Autora: @elenalazo20 · Licencia: MIT
@@ -272,6 +274,17 @@ install.packages(c(
 ```
 
 ------------------------------------------------------------------------
+
+## 📎 DOI y cita sugerida
+
+Este repositorio está archivado en Zenodo.
+
+- DOI: [10.5281/zenodo.17824652](https://doi.org/10.5281/zenodo.17824652)
+
+**Cita sugerida (formato APA):**
+
+Lazo, E. (2025). *PM2.5 en la Región Metropolitana de Santiago (2014–2024): visualización y análisis del PPDA RM* (versión 1.0.1) [Software]. Zenodo. https://doi.org/10.5281/zenodo.17824652
+
 
 ## ⚖️ Licencia
 
