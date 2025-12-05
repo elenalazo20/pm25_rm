@@ -1,4 +1,3 @@
-``` md
 ---
 editor_options: 
   markdown: 
@@ -283,9 +282,3 @@ install.packages(c(
 ## ⚖️ Licencia
 
 El código de este repositorio se distribuye bajo licencia **MIT**. Ver el archivo `LICENSE` para más detalles.
-
-```         
-
-Si querés, después vemos juntos si el título y el subtítulo del README y del `reporte_final.qmd` están diciendo exactamente lo mismo, o si conviene afinar una frase para que quede ultra coherente ✨
-::contentReference[oaicite:0]{index=0}
-```
