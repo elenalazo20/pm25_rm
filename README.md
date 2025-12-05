@@ -1,10 +1,3 @@
-``` md
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # PM2.5 - Región Metropolitana (2018-2024): visualización y análisis 🌁
 
 **Proyecto Final del Curso Visualización y Análisis de Datos
@@ -283,9 +276,3 @@ install.packages(c(
 ## ⚖️ Licencia
 
 El código de este repositorio se distribuye bajo licencia **MIT**. Ver el archivo `LICENSE` para más detalles.
-
-```         
-
-Si querés, después vemos juntos si el título y el subtítulo del README y del `reporte_final.qmd` están diciendo exactamente lo mismo, o si conviene afinar una frase para que quede ultra coherente ✨
-::contentReference[oaicite:0]{index=0}
-```
