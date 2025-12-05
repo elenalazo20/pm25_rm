@@ -629,10 +629,44 @@ En suma, los resultados son **compatibles con un efecto positivo del PPDA sobre 
 
 Este reporte cuenta con material suplementario en formato PDF, que incluye para cada estación de monitoreo un análisis detallado del perfil horario y la tendencia anual de PM₂.₅ en el período 2014–2024.
 
+```{r links-suplementarios, echo=FALSE, message=FALSE, warning=FALSE}
+library(stringr)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(here) # Aseguramos que here esté cargado
+
+# 1. Obtener la lista de archivos PDF generados
+lista_pdfs <- list.files(
+  path = here("reportes", "suplementario"), 
+  pattern = "\\.pdf$", 
+  full.names = FALSE)
+
+# 2. Crear la tabla base con los códigos y los enlaces HTML
+# (site_labels debe estar disponible desde el chunk de setup)
+tabla_links <- tibble::tibble(
+  # Extrae el código de la estación del nombre del archivo (suplementario_LC.pdf -> LC)
+  Estación_Code = stringr::str_extract(lista_pdfs, "(?<=suplementario_).*(?=\\.pdf)"),
+  # Crea el enlace HTML clicable (ruta relativa que funciona en GitHub Pages)
+  Link = paste0('<a href="./suplementario/', lista_pdfs, '">Descargar PDF</a>'))
+
+# 3. Recodificar los códigos a nombres completos y seleccionar columnas
+tabla_links <- tabla_links %>%
+  dplyr::mutate(Estación = dplyr::recode(Estación_Code, !!!site_labels)) %>%
+  dplyr::select(Estación, Link)
+
+# 4. Renderizar la tabla de links
+tabla_links %>% 
+  knitr::kable(format = "html", escape = FALSE, align = 'l', 
+               col.names = c("Estación", "Documento")) %>% 
+  kableExtra::kable_styling(full_width = FALSE)
+```
+
+
 Como complemento, se sugiere revisar:
 
 - La información oficial del Ministerio del Medio Ambiente sobre los [Programas de Compensación de Emisiones (PCE)](https://airerm.mma.gob.cl/programas-de-compensacion-de-emisiones-pce/).
-- La [presentación en video sobre el PPDA RM y el Programa de Compensación de Emisiones](https://www.youtube.com/watch?v=ObYr4Z1SqFY&t=1576s).
+
 
 ## Video recomendado
 
